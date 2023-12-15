@@ -27,7 +27,7 @@
     </config-file>  
     <config-file target="AndroidManifest.xml" parent="/*">
             <receiver
-                android:name=".LocalNotificationScheduler$NotificationReceiver"
+                android:name="com.plugin.CtyNotification.LocalNotificationScheduler$NotificationReceiver"
                 android:enabled="true"
                 android:exported="true">
                 <intent-filter>
