@@ -1,6 +1,6 @@
 var exec = require('cordova/exec');
 
-var ctyNotice = {
+var CtyNoticePlugin = {
     //普通通知  
     commonNotice: function(
         success,
@@ -73,4 +73,4 @@ var ctyNotice = {
     }
 }
 
-module.exports = ctyNotice
+module.exports = CtyNoticePlugin

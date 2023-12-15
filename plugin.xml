@@ -25,7 +25,7 @@
 		  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/> 
 			<uses-permission android:name="android.permission.SET_ALARM"/> 
     </config-file>  
-    <config-file target="AndroidManifest.xml" parent="/manifest/application">
+    <config-file target="AndroidManifest.xml" parent="/*">
             <receiver
                 android:name=".LocalNotificationScheduler$NotificationReceiver"
                 android:enabled="true"
