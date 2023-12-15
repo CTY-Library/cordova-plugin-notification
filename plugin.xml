@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<plugin id="cordova-plugin-aliyun-ossupload"
+  xmlns="http://apache.org/cordova/ns/plugins/1.0" 
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  version="1.0.3">  
+  <name>cordova-plugin-notice</name>  
+  <preference name="SECRETKEY"/>  
+
+  <js-module name="cordova-plugin-notice" src="www/js/Notice.js"> 
+    <clobbers target="cordova-plugin-notice"/> 
+  </js-module> 
+
+  <platform name="android"> 
+    <config-file parent="/*" target="res/xml/config.xml"> 
+      <feature name="CtyNotification"> 
+        <param name="android-package" value="com.plugin.CtyNotification"/> 
+      </feature> 
+    </config-file>
+    <config-file parent="/*" target="AndroidManifest.xml"> 
+      <uses-permission android:name="android.permission.INTERNET"/>  
+      <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>  
+      <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>  
+      <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>  
+      <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/> 
+		  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/> 
+			<uses-permission android:name="android.permission.SET_ALARM"/> 
+    </config-file>  
+    <config-file target="AndroidManifest.xml" parent="/manifest/application">
+            <receiver
+                android:name=".LocalNotificationScheduler$NotificationReceiver"
+                android:enabled="true"
+                android:exported="true">
+                <intent-filter>
+                    <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                    <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.HOME" />
+                </intent-filter>
+            </receiver>
+     </config-file>
+  </platform>  
+</plugin>
+
