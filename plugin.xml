@@ -25,9 +25,9 @@
       <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/> 
       <uses-permission android:name="android.permission.SET_ALARM"/> 
     </config-file>  
-    <config-file target="AndroidManifest.xml" parent="/*">
+    <config-file target="AndroidManifest.xml" parent="/manifest/application">
             <receiver
-                android:name=".LocalNotificationScheduler$NotificationReceiver"
+                android:name="com.plugin.CtyNotification.LocalNotificationScheduler$NotificationReceiver"
                 android:enabled="true"
                 android:exported="true">
                 <intent-filter>
