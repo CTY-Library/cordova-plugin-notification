@@ -4,10 +4,10 @@
   xmlns="http://apache.org/cordova/ns/plugins/1.0" 
   xmlns:android="http://schemas.android.com/apk/res/android"
   version="1.0.3">  
-  <name>cordova-plugin-notice</name>  
+  <name>CtyNotification</name>  
 
-  <js-module name="cordova-plugin-notice" src="www/js/Notice.js"> 
-    <clobbers target="cordova-plugin-notice"/> 
+  <js-module name="CtyNotification" src="www/js/Notice.js"> 
+    <clobbers target="CtyNotification"/> 
   </js-module> 
 
   <platform name="android"> 
