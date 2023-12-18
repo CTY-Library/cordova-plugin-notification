@@ -17,15 +17,6 @@ import org.json.JSONException;
 public class CtyNoticePlugin extends  CordovaPlugin {
     private Context mActContext;
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
-    @Override
-    public void initialize(CordovaInterface cordova, CordovaWebView webView) {
-        super.initialize(cordova, webView);
-        mActContext = this.cordova.getActivity().getApplicationContext();
-    }
-
-
-    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
         int notificationId =Integer.parseInt(args.getString(0)); //通知的Id
@@ -36,6 +27,9 @@ public class CtyNoticePlugin extends  CordovaPlugin {
         String urlBigImage =args.getString(5); //大图
         String strDate =args.getString(6); //通知时间
         boolean strRepeat =Boolean.parseBoolean(args.getString(7)); //是否重复推送
+
+        mActContext= this.cordova.getActivity().getApplicationContext();
+
         //初始化
         if (action.equals("commonNotice")) {
             CtyNotificationHelper.CommonNotice(mActContext,notificationId,title,subText,message);
