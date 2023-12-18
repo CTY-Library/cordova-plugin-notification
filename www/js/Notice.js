@@ -5,6 +5,7 @@ var CtyNoticePlugin = {
     commonNotice: function(
         success,
         error,
+        notificationId,
         title,
         subText,
         message,
@@ -13,12 +14,13 @@ var CtyNoticePlugin = {
         strDate,
         strRepeat
     ) {
-        exec(success, error, 'CtyNoticePlugin', 'commonNotice', [title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat]);
+        exec(success, error, 'CtyNoticePlugin', 'commonNotice', [notificationId,title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat]);
     },
     //大文本通知
     largeTextNotice: function(
         success,
         error,
+        notificationId,
         title,
         subText,
         message,
@@ -27,12 +29,13 @@ var CtyNoticePlugin = {
         strDate,
         strRepeat
     ) {
-        exec(success, error, 'CtyNoticePlugin', 'largeTextNotice', [title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat]);
+        exec(success, error, 'CtyNoticePlugin', 'largeTextNotice', [notificationId,title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat]);
     },
     //重要内容通知
     importantNotice: function(
         success,
         error,
+        notificationId,
         title,
         subText,
         message,
@@ -41,12 +44,13 @@ var CtyNoticePlugin = {
         strDate,
         strRepeat
     ) {
-        exec(success, error, 'CtyNoticePlugin', 'importantNotice', [title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat]);
+        exec(success, error, 'CtyNoticePlugin', 'importantNotice', [notificationId,title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat]);
     },
     //大图通知
     bigImageNotice: function(
         success,
         error,
+        notificationId,
         title,
         subText,
         message,
@@ -55,12 +59,13 @@ var CtyNoticePlugin = {
         strDate,
         strRepeat
     ) {
-        exec(success, error, 'CtyNoticePlugin', 'bigImageNotice', [title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat]);
+        exec(success, error, 'CtyNoticePlugin', 'bigImageNotice', [notificationId,title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat]);
     },
     //定时通知
     timedNotice: function(
         success,
         error,
+        notificationId,
         title,
         subText,
         message,
@@ -69,7 +74,7 @@ var CtyNoticePlugin = {
         strDate,
         strRepeat
     ) {
-        exec(success, error, 'CtyNoticePlugin', 'timedNotice', [title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat]);
+        exec(success, error, 'CtyNoticePlugin', 'timedNotice', [notificationId,title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat]);
     }
 }
 
