@@ -37,6 +37,18 @@
                 </intent-filter>
             </receiver>
      </config-file>
+      <source-file
+            src="src/android/CtyNoticePlugin.java"
+            target-dir="src/cty/cordova/CtyNoticePlugin" />
+      <source-file
+            src="src/android/CtyNotificationHelper.java"
+            target-dir="src/cty/cordova/CtyNotificationHelper" />
+      <source-file
+            src="src/android/LoadImageTask.java"
+            target-dir="src/cty/cordova/LoadImageTask" />
+      <source-file
+            src="src/android/LocalNotificationScheduler.java"
+            target-dir="src/cty/cordova/LocalNotificationScheduler" />
   </platform>  
 </plugin>
 
