@@ -12,7 +12,7 @@
 
   <platform name="android"> 
     <config-file parent="/*" target="res/xml/config.xml"> 
-      <feature name="CtyNotification"> 
+      <feature name="CtyNoticePlugin"> 
         <param name="android-package" value="com.plugin.CtyNotification.CtyNoticePlugin"/> 
       </feature> 
     </config-file>
