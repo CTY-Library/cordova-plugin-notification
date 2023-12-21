@@ -37,10 +37,10 @@
                 </intent-filter>
             </receiver>
      </config-file>
-        <source-file src="src/android/CtyNoticePlugin.java" target-dir="src/main/java/com/plugin/CtyNotification" />
-        <source-file src="src/android/CtyNotificationHelper.java" target-dir="src/main/java/com/plugin/CtyNotification" />
-        <source-file src="src/android/LoadImageTask.java" target-dir="src/main/java/com/plugin/CtyNotification" />
-        <source-file src="src/android/LocalNotificationScheduler.java" target-dir="src/main/java/com/plugin/CtyNotification" />
+        <source-file src="src/android/CtyNoticePlugin.java" target-dir="src/com/plugin/CtyNotification" />
+        <source-file src="src/android/CtyNotificationHelper.java" target-dir="src/com/plugin/CtyNotification" />
+        <source-file src="src/android/LoadImageTask.java" target-dir="src/com/plugin/CtyNotification" />
+        <source-file src="src/android/LocalNotificationScheduler.java" target-dir="src/com/plugin/CtyNotification" />
   </platform>  
 </plugin>
 

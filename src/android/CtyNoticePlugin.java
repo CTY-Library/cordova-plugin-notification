@@ -31,38 +31,48 @@ public class CtyNoticePlugin extends  CordovaPlugin {
         //初始化
         if (action.equals("commonNotice")) {
             CtyNotificationHelper.CommonNotice(mActContext,notificationId,title,subText,message);
-            return  true;
+            callbackContext.success("success");
+            true;
         }
         else if (action.equals("largeTextNotice")) {
             CtyNotificationHelper.LargeTextNotice(mActContext,notificationId,title,subText,message);
+            callbackContext.success("success");
             return  true;
         }
        else  if (action.equals("importantNotice")) {
-           CtyNotificationHelper.ImportantNotice(mActContext,notificationId,title,subText,message);
+            CtyNotificationHelper.ImportantNotice(mActContext,notificationId,title,subText,message);
+            callbackContext.success("success");
             return  true;
         }
        else if (action.equals("bigImageNotice")) {
             Executor executor= Executors.newSingleThreadExecutor();
             executor.execute(new LoadImageTask(mActContext, notificationId,title,subText,message,urlLargeIco,urlBigImage));
+            callbackContext.success("success");
             return  true;
        }
        else if (action.equals("timedNotice")) {
             try {
                 LocalNotificationScheduler.scheduleLocalNotification(mActContext,notificationId,title,subText,message,urlLargeIco,urlBigImage,strType, strDate,strRepeat);
+                callbackContext.success("success");
                 return  true;
             } catch (ParseException e) {
+                callbackContext.error(e.toString());
                 throw new RuntimeException(e);
             } catch (java.text.ParseException e) {
+                callbackContext.error(e.toString());
                 throw new RuntimeException(e);
             }
         }
         else if (action.equals("timedCancelNotice")) {
             try {
                 LocalNotificationScheduler.scheduleCancelLocalNotification(mActContext,notificationId);
+                callbackContext.success("success");
                 return  true;
             } catch (ParseException e) {
+                callbackContext.error(e.toString());
                 throw new RuntimeException(e);
             } catch (java.text.ParseException e) {
+                callbackContext.error(e.toString());
                 throw new RuntimeException(e);
             }
         }
