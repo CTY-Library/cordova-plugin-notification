@@ -28,7 +28,8 @@ var CtyLocationNotification = {
         urlLargeIco,
         urlBigImage,
         strDate,
-        strRepeat
+        strRepeat,
+        strType
     ) {
         exec(success, error, 'CtyNoticePlugin', 'largeTextNotice', [notificationId,title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat,strType]);
     },
@@ -79,7 +80,7 @@ var CtyLocationNotification = {
         strType
     ) {
         exec(success, error, 'CtyNoticePlugin', 'timedNotice', [notificationId,title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat,strType]);
-    }
+    },
    //定时通知
     timedCancelNotice: function(
         success,
