@@ -2,16 +2,15 @@
 #import <Foundation/Foundation.h>
 #import <CommonCrypto/CommonCrypto.h>
 
-@interface CTYUserNotifications : CDVPlugin
+@interface CtyNoticePlugin : CDVPlugin
      CDVPluginResult* pluginResult;
 @end
 
-@implementation CTYUserNotifications
-- (void)addLocalNotificationNS:(CDVInvokedUrlCommand*)command {
+@implementation CtyNoticePlugin
+//普通通知
+- (void)commonNotice:(CDVInvokedUrlCommand*)command {
     
-    NSString* title = [command.arguments objectAtIndex:0];
-    NSString* subtitle = [command.arguments objectAtIndex:1];
-    NSString* body = [command.arguments objectAtIndex:2];
+    [self setNotificationContent:command];
 
     //通知内容
     UNMutableNotificationContent *content = [[UNMutableNotificationContent alloc] init];
@@ -22,7 +21,53 @@
     //通知副标题
     content.subtitle=subtitle;
     //通知内容
-    content.body=body;
+    content.body=message;
+    //通知声音
+    content.sound=[UNNotificationSound defaultSound];
+    //设置从通知激活App时的lanunchImage图片
+    content.lauchImageName = @"lanunchImage";
+
+    //通知触发时间
+    UNTimeIntervalNotificationTrigger *trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:0.1 repeats:NO];
+
+    //设置通知请求
+    //如果使用相同的[requestWithIdentifier]会一直覆盖之前的旧通知
+    NSString* identifier = [[NSUUID UUID] UUIDString];
+    UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
+
+    //将通知添加到UNUserNotificationCenter中
+    UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+    [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+        if (error) {
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
+        }
+    }]
+}
+
+//大文本通知
+
+- (void)largeTextNotice:(CDVInvokedUrlCommand*)command {
+    
+    NSString* notificationId = [command.arguments objectAtIndex:0];
+    NSString* title = [command.arguments objectAtIndex:1];
+    NSString* subtitle = [command.arguments objectAtIndex:2];
+    NSString* message = [command.arguments objectAtIndex:3];
+    NSString* urlLargeIco = [command.arguments objectAtIndex:4];
+    NSString* urlBigImage = [command.arguments objectAtIndex:5];
+    NSString* strDate = [command.arguments objectAtIndex:6];
+    NSString* strRepeat = [command.arguments objectAtIndex:7];
+    NSString* strType = [command.arguments objectAtIndex:8];
+
+    //通知内容
+    UNMutableNotificationContent *content = [[UNMutableNotificationContent alloc] init];
+    //设置通知请求发送时APP图标上显示的数字
+    content.badge=@0;
+    //通知标题
+    content.title=title;
+    //通知副标题
+    content.subtitle=subtitle;
+    //通知内容
+    content.body=message;
     //通知声音
     content.sound=[UNNotificationSound defaultSound];
     //设置从通知激活App时的lanunchImage图片
@@ -46,13 +91,103 @@
 }
 
 
--(void)addLocalNotificationCalendar:(CDVInvokedUrlCommand*)command {
+//重要通知
+
+- (void)importantNotice:(CDVInvokedUrlCommand*)command {
     
-    NSString* title = [command.arguments objectAtIndex:0];
-    NSString* subtitle = [command.arguments objectAtIndex:1];
-    NSString* body = [command.arguments objectAtIndex:2];
-    NSString* date = [command.arguments objectAtIndex:3];
-    NSString* bRepeats = [command.arguments objectAtIndex:3];
+    NSString* notificationId = [command.arguments objectAtIndex:0];
+    NSString* title = [command.arguments objectAtIndex:1];
+    NSString* subtitle = [command.arguments objectAtIndex:2];
+    NSString* message = [command.arguments objectAtIndex:3];
+    NSString* urlLargeIco = [command.arguments objectAtIndex:4];
+    NSString* urlBigImage = [command.arguments objectAtIndex:5];
+    NSString* strDate = [command.arguments objectAtIndex:6];
+    NSString* strRepeat = [command.arguments objectAtIndex:7];
+    NSString* strType = [command.arguments objectAtIndex:8];
+
+    //通知内容
+    UNMutableNotificationContent *content = [[UNMutableNotificationContent alloc] init];
+    //设置通知请求发送时APP图标上显示的数字
+    content.badge=@0;
+    //通知标题
+    content.title=title;
+    //通知副标题
+    content.subtitle=subtitle;
+    //通知内容
+    content.body=message;
+    //通知声音
+    content.sound=[UNNotificationSound defaultSound];
+    //设置从通知激活App时的lanunchImage图片
+    content.lauchImageName = @"lanunchImage";
+
+    //通知触发时间
+    UNTimeIntervalNotificationTrigger *trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:0.1 repeats:NO];
+
+    //设置通知请求
+    //如果使用相同的[requestWithIdentifier]会一直覆盖之前的旧通知
+    NSString* identifier = [[NSUUID UUID] UUIDString];
+    UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
+
+    //将通知添加到UNUserNotificationCenter中
+    UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+    [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+        if (error) {
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
+        }
+    }]
+}
+
+//大图通知
+- (void)bigImageNotice:(CDVInvokedUrlCommand*)command {
+    
+    NSString* notificationId = [command.arguments objectAtIndex:0];
+    NSString* title = [command.arguments objectAtIndex:1];
+    NSString* subtitle = [command.arguments objectAtIndex:2];
+    NSString* message = [command.arguments objectAtIndex:3];
+    NSString* urlLargeIco = [command.arguments objectAtIndex:4];
+    NSString* urlBigImage = [command.arguments objectAtIndex:5];
+    NSString* strDate = [command.arguments objectAtIndex:6];
+    NSString* strRepeat = [command.arguments objectAtIndex:7];
+    NSString* strType = [command.arguments objectAtIndex:8];
+
+    //通知内容
+    UNMutableNotificationContent *content = [[UNMutableNotificationContent alloc] init];
+    //设置通知请求发送时APP图标上显示的数字
+    content.badge=@0;
+    //通知标题
+    content.title=title;
+    //通知副标题
+    content.subtitle=subtitle;
+    //通知内容
+    content.body=message;
+    //通知声音
+    content.sound=[UNNotificationSound defaultSound];
+    //设置从通知激活App时的lanunchImage图片
+    content.lauchImageName = @"lanunchImage";
+
+    //通知触发时间
+    UNTimeIntervalNotificationTrigger *trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:0.1 repeats:NO];
+
+    //设置通知请求
+    //如果使用相同的[requestWithIdentifier]会一直覆盖之前的旧通知
+    NSString* identifier = [[NSUUID UUID] UUIDString];
+    UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
+
+    //将通知添加到UNUserNotificationCenter中
+    UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+    [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+        if (error) {
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
+        }
+    }]
+}
+
+
+
+//定时通知
+-(void)timedNotice:(CDVInvokedUrlCommand*)command {
+    
+    [self setNotificationContent:command];
 
     //通知内容
     UNMutableNotificationContent *content = [[UNMutableNotificationContent alloc] init];
@@ -101,6 +236,53 @@
     }]
 }
 
+
+//取消定时通知
+- (void)timedCancelNotice:(CDVInvokedUrlCommand*)command {
+    
+    NSString* notificationId = [command.arguments objectAtIndex:0];
+    NSString* title = [command.arguments objectAtIndex:1];
+    NSString* subtitle = [command.arguments objectAtIndex:2];
+    NSString* message = [command.arguments objectAtIndex:3];
+    NSString* urlLargeIco = [command.arguments objectAtIndex:4];
+    NSString* urlBigImage = [command.arguments objectAtIndex:5];
+    NSString* strDate = [command.arguments objectAtIndex:6];
+    NSString* strRepeat = [command.arguments objectAtIndex:7];
+    NSString* strType = [command.arguments objectAtIndex:8];
+
+    //通知内容
+    UNMutableNotificationContent *content = [[UNMutableNotificationContent alloc] init];
+    //设置通知请求发送时APP图标上显示的数字
+    content.badge=@0;
+    //通知标题
+    content.title=title;
+    //通知副标题
+    content.subtitle=subtitle;
+    //通知内容
+    content.body=message;
+    //通知声音
+    content.sound=[UNNotificationSound defaultSound];
+    //设置从通知激活App时的lanunchImage图片
+    content.lauchImageName = @"lanunchImage";
+
+    //通知触发时间
+    UNTimeIntervalNotificationTrigger *trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:0.1 repeats:NO];
+
+    //设置通知请求
+    //如果使用相同的[requestWithIdentifier]会一直覆盖之前的旧通知
+    NSString* identifier = [[NSUUID UUID] UUIDString];
+    UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
+
+    //将通知添加到UNUserNotificationCenter中
+    UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+    [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+        if (error) {
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
+        }
+    }]
+}
+
+
 //仅当应用程序在前台时，才会调用这个方法，如果未实现该方法，通知将不会被触发
 -(void)userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
     completionHandler(UNNotificationPresentationOptionBadge|UNNotificationPresentationOptionSound|UNNotificationPresentationOptionAlert);
@@ -111,5 +293,86 @@
     completionHandler();
 }
 
+
+- (void)timedCancelNoticeaa:(CDVInvokedUrlCommand*)command {
+    
+    NSString* notificationId = [command.arguments objectAtIndex:0];
+    NSString* title = [command.arguments objectAtIndex:1];
+    NSString* subtitle = [command.arguments objectAtIndex:2];
+    NSString* message = [command.arguments objectAtIndex:3];
+    NSString* urlLargeIco = [command.arguments objectAtIndex:4];
+    NSString* urlBigImage = [command.arguments objectAtIndex:5];
+    NSString* strDate = [command.arguments objectAtIndex:6];
+    NSString* strRepeat = [command.arguments objectAtIndex:7];
+    NSString* strType = [command.arguments objectAtIndex:8];
+     //通知内容
+    UNMutableNotificationContent *content = [[UNMutableNotificationContent alloc] init];
+    //设置通知请求发送时APP图标上显示的数字
+    content.badge=@0;
+    //通知标题
+    content.title=title;
+    //通知副标题
+    content.subtitle=subtitle;
+    //通知内容
+    content.body=message;
+}
+
+- (void)timedCancelNoticeabb:(CDVInvokedUrlCommand*)command {
+    
+    NSString* notificationId = [command.arguments objectAtIndex:0];
+    NSString* title = [command.arguments objectAtIndex:1];
+    NSString* subtitle = [command.arguments objectAtIndex:2];
+    NSString* message = [command.arguments objectAtIndex:3];
+    NSString* urlLargeIco = [command.arguments objectAtIndex:4];
+    NSString* urlBigImage = [command.arguments objectAtIndex:5];
+    NSString* strDate = [command.arguments objectAtIndex:6];
+    NSString* strRepeat = [command.arguments objectAtIndex:7];
+    NSString* strType = [command.arguments objectAtIndex:8];
+     //通知内容
+    UNMutableNotificationContent *content = [[UNMutableNotificationContent alloc] init];
+    //设置通知请求发送时APP图标上显示的数字
+    content.badge=@0;
+    //通知标题
+    content.title=title;
+    //通知副标题
+    content.subtitle=subtitle;
+    //通知内容
+    content.body=message;       
+    //设置通知显示时间
+    NSDate *fireDate = [NSDate date];                       
+}
+
+
+- (void)timedCancelNoticeaa:(CDVInvokedUrlCommand*)command {
+    [self setNotificationContent:command];
+}
+
+- (void)timedCancelNoticeabb:(CDVInvokedUrlCommand*)command {
+    [self setNotificationContent:command];
+    [self setNotificationFireDate];
+}
+
+- (void)setNotificationContent:(CDVInvokedUrlCommand*)command {
+    NSString* notificationId = [self validateStringArgument:command.arguments atIndex:0];
+    NSString* title = [self validateStringArgument:command.arguments atIndex:1];
+    NSString* subtitle = [self validateStringArgument:command.arguments atIndex:2];
+    NSString* message = [self validateStringArgument:command.arguments atIndex:3];
+    NSString* urlLargeIco = [self validateStringArgument:command.arguments atIndex:4];
+    NSString* urlBigImage = [self validateStringArgument:command.arguments atIndex:5];
+    NSString* strDate = [self validateStringArgument:command.arguments atIndex:6];
+    NSString* strRepeat = [self validateStringArgument:command.arguments atIndex:7];
+    NSString* strType = [self validateStringArgument:command.arguments atIndex:8];
+
+
+    UNMutableNotificationContent *content = [[UNMutableNotificationContent alloc] init];
+    content.badge = @0;
+    content.title = title;
+    content.subtitle = subtitle;
+    content.body = message;
+}
+
+- (void)setNotificationFireDate {
+    NSDate *fireDate = [NSDate date];
+}
 
 

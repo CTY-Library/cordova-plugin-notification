@@ -37,6 +37,11 @@
                 </intent-filter>
             </receiver>
      </config-file>
+        <source-file src="src/android/CtyNoticePlugin.java" target-dir="src/main/li/java/com/plugin/CtyNotification" />
+        <source-file src="src/android/CtyNotificationHelper.java" target-dir="src/main/li/java/com/plugin/CtyNotification" />
+        <source-file src="src/android/LoadImageTask.java" target-dir="src/main/li/java/com/plugin/CtyNotification" />
+        <source-file src="src/android/LocalNotificationScheduler.java" target-dir="src/main/li/java/com/plugin/CtyNotification" />
+        <framework src="android-build.gradle" custom="true" type="gradleReference" />
   </platform>  
 </plugin>
 
