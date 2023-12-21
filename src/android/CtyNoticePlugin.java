@@ -3,20 +3,17 @@ package com.plugin.CtyNotification;
 
 import android.content.Context;
 import android.net.ParseException;
-import android.os.Build;
-
-import androidx.annotation.RequiresApi;
 
 import org.apache.cordova.CallbackContext;
-import org.apache.cordova.CordovaInterface;
 import org.apache.cordova.CordovaPlugin;
-import org.apache.cordova.CordovaWebView;
 import org.json.JSONArray;
 import org.json.JSONException;
 
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+
 public class CtyNoticePlugin extends  CordovaPlugin {
     private Context mActContext;
-
     @Override
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
         int notificationId =Integer.parseInt(args.getString(0)); //通知的Id
@@ -27,30 +24,41 @@ public class CtyNoticePlugin extends  CordovaPlugin {
         String urlBigImage =args.getString(5); //大图
         String strDate =args.getString(6); //通知时间
         boolean strRepeat =Boolean.parseBoolean(args.getString(7)); //是否重复推送
+        String strType =args.getString(8); //通知时间
 
-        mActContext= this.cordova.getActivity().getApplicationContext();
+        mActContext = this.cordova.getActivity().getApplicationContext();
 
         //初始化
         if (action.equals("commonNotice")) {
             CtyNotificationHelper.CommonNotice(mActContext,notificationId,title,subText,message);
             return  true;
         }
-        if (action.equals("largeTextNotice")) {
+        else if (action.equals("largeTextNotice")) {
             CtyNotificationHelper.LargeTextNotice(mActContext,notificationId,title,subText,message);
             return  true;
         }
-        if (action.equals("importantNotice")) {
+       else  if (action.equals("importantNotice")) {
            CtyNotificationHelper.ImportantNotice(mActContext,notificationId,title,subText,message);
             return  true;
         }
-        if (action.equals("bigImageNotice")) {
-            LoadImageTask loadImageTask = new LoadImageTask(mActContext, notificationId,title,subText,message);
-            loadImageTask.execute(urlBigImage);
+       else if (action.equals("bigImageNotice")) {
+            Executor executor= Executors.newSingleThreadExecutor();
+            executor.execute(new LoadImageTask(mActContext, notificationId,title,subText,message,urlLargeIco,urlBigImage));
             return  true;
-        }
-        if (action.equals("timedNotice")) {
+       }
+       else if (action.equals("timedNotice")) {
             try {
-                LocalNotificationScheduler.scheduleLocalNotification(mActContext,title,subText,message,urlLargeIco,urlBigImage,"", strDate,strRepeat);
+                LocalNotificationScheduler.scheduleLocalNotification(mActContext,notificationId,title,subText,message,urlLargeIco,urlBigImage,strType, strDate,strRepeat);
+                return  true;
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            } catch (java.text.ParseException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        else if (action.equals("timedCancelNotice")) {
+            try {
+                LocalNotificationScheduler.scheduleCancelLocalNotification(mActContext,notificationId);
                 return  true;
             } catch (ParseException e) {
                 throw new RuntimeException(e);

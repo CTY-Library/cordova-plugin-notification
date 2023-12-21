@@ -7,6 +7,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.icu.text.SimpleDateFormat;
+import android.os.AsyncTask;
+
+import androidx.loader.content.AsyncTaskLoader;
 
 import java.text.ParseException;
 import java.util.Calendar;
@@ -15,7 +18,8 @@ import java.util.Locale;
 
 
 public class LocalNotificationScheduler {
-    public static void scheduleLocalNotification(Context context,String title,String subText, String message,String urlLargeIcon,String urlBigImage,String strType,String strDate,boolean repeat) throws ParseException {
+    //定时通知
+    public static void scheduleLocalNotification(Context context,int requestCode,String title,String subText, String message,String urlLargeIcon,String urlBigImage,String strType,String strDate,boolean repeat) throws ParseException {
         // 获取AlarmManager系统服务
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
 
@@ -29,7 +33,7 @@ public class LocalNotificationScheduler {
         notificationIntent.putExtra("strType",strType);
         notificationIntent.putExtra("strDate",strDate);
         notificationIntent.putExtra("repeat",repeat);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, requestCode, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         // 设置定时只执行一次
         SimpleDateFormat sdf = null;
@@ -50,17 +54,52 @@ public class LocalNotificationScheduler {
             alarmManager.set(AlarmManager.RTC_WAKEUP,date.getTime(),pendingIntent);
         }
     }
+
+    //取消定时通知
+    public static void scheduleCancelLocalNotification(Context context,int requestCode) throws ParseException {
+        // 获取AlarmManager系统服务
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+
+        // 创建一个Intent，用于触发本地推送
+        Intent notificationIntent = new Intent(context, NotificationReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, requestCode, notificationIntent, PendingIntent.FLAG_NO_CREATE);
+
+        if(pendingIntent!=null&&alarmManager!=null)
+        {
+            //取消定时通知
+            alarmManager.cancel(pendingIntent);
+        }
+    }
+
     public static class NotificationReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
+            int notificationId =intent.getIntExtra("notificationId",0);
             String title=intent.getStringExtra("title");
             String subText=intent.getStringExtra("subText");
             String message=intent.getStringExtra("message");
             String urlLargeIcon=intent.getStringExtra("urlLargeIcon");
             String urlBigImage=intent.getStringExtra("urlBigImage");
             String strType=intent.getStringExtra("strType");
-            boolean repeat=intent.getBooleanExtra("repeat",false);
-            CtyNotificationHelper.CommonNotice(context, 5,title,subText, message);
+            switch (strType)
+            {
+                case "commonNotice":
+                    CtyNotificationHelper.CommonNotice(context, notificationId,title,subText, message);
+                    break;
+                case "largeTextNotice":
+                    CtyNotificationHelper.LargeTextNotice(context, notificationId,title,subText, message);
+                    break;
+                case "importantNotice":
+                    CtyNotificationHelper.ImportantNotice(context, notificationId,title,subText, message);
+                    break;
+                case "bigImageNotice":
+                    LoadImageTask loadImageTask = new LoadImageTask(context, notificationId,title,subText,message,urlLargeIcon,urlBigImage);
+                    //使用executeOnExecutor 执行，并指定线程池
+                    //loadImageTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,urlBigImage);
+                    break;
+                default:
+                    break;
+            }
         }
     }
 }

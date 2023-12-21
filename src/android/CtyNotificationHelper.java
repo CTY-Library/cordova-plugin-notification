@@ -32,7 +32,7 @@ public class CtyNotificationHelper {
         createNotificationChannel(context,NotificationId);
 
         // 创建一个新的PendingIntent
-        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, new Intent(context, MainActivity.class), 0);
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, NotificationId, new Intent(context,MainActivity.class), 0);
 
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context,Integer.toString(NotificationId))
@@ -52,7 +52,7 @@ public class CtyNotificationHelper {
         createNotificationChannel(context,NotificationId);
 
         // 创建一个新的PendingIntent
-        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, new Intent(context, MainActivity.class), 0);
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, NotificationId, new Intent(context, MainActivity.class), 0);
 
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context,Integer.toString(NotificationId))
@@ -79,7 +79,7 @@ public class CtyNotificationHelper {
         createNotificationChannel(context,NotificationId);
 
         // 创建一个新的PendingIntent
-        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, new Intent(context, MainActivity.class), 0);
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, NotificationId, new Intent(context, MainActivity.class), 0);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context,Integer.toString(NotificationId))
                 .setSmallIcon(R.mipmap.ic_launcher)
@@ -101,21 +101,21 @@ public class CtyNotificationHelper {
     }
 
     //大图片通知
-    public static void BigPictureNotice(Context context, int NotificationId, String title, String subText,String message, Bitmap bitmap) {
+    public static void BigPictureNotice(Context context, int NotificationId, String title, String subText,String message, Bitmap Iconbitmap,Bitmap Bigbitmap) {
         createNotificationChannel(context,NotificationId);
 
         Resources resources=context.getResources();
         Bitmap bigPicTwo=BitmapFactory.decodeResource(resources,R.mipmap.ic_launcher);
         // 创建一个新的PendingIntent
-        PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, new Intent(context, MainActivity.class), 0);
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, NotificationId, new Intent(context, MainActivity.class), 0);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context,Integer.toString(NotificationId))
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle(title)
                 .setSubText(subText)
                 .setContentText(message)
-                .setStyle(new NotificationCompat.BigPictureStyle().bigPicture(bitmap))
-                .setLargeIcon(bitmap)
+                .setStyle(new NotificationCompat.BigPictureStyle().bigPicture(Bigbitmap))
+                .setLargeIcon(Iconbitmap)
                 .setAutoCancel(true)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setContentIntent(pendingIntent);
