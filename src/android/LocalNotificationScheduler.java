@@ -1,7 +1,5 @@
 package com.plugin.CtyNotification;
 
-import static okhttp3.ConnectionPool.executor;
-
 import android.app.AlarmManager;
 
 import android.app.PendingIntent;
@@ -9,8 +7,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.icu.text.SimpleDateFormat;
-
-import org.apache.cordova.CordovaPlugin;
 
 import java.text.ParseException;
 import java.util.Calendar;
