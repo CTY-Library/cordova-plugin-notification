@@ -7,9 +7,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.icu.text.SimpleDateFormat;
-import android.os.AsyncTask;
 
-import androidx.loader.content.AsyncTaskLoader;
+import org.apache.cordova.CordovaPlugin;
 
 import java.text.ParseException;
 import java.util.Calendar;
@@ -17,7 +16,7 @@ import java.util.Date;
 import java.util.Locale;
 
 
-public class LocalNotificationScheduler {
+public class LocalNotificationScheduler  extends CordovaPlugin {
     //定时通知
     public static void scheduleLocalNotification(Context context,int requestCode,String title,String subText, String message,String urlLargeIcon,String urlBigImage,String strType,String strDate,boolean repeat) throws ParseException {
         // 获取AlarmManager系统服务
@@ -93,7 +92,7 @@ public class LocalNotificationScheduler {
                     CtyNotificationHelper.ImportantNotice(context, notificationId,title,subText, message);
                     break;
                 case "bigImageNotice":
-                    LoadImageTask loadImageTask = new LoadImageTask(context, notificationId,title,subText,message,urlLargeIcon,urlBigImage);
+                    cordova.getThreadPool().execute(new LoadImageTask(context, notificationId,title,subText,message,urlLargeIcon,urlBigImage));
                     //使用executeOnExecutor 执行，并指定线程池
                     //loadImageTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,urlBigImage);
                     break;
