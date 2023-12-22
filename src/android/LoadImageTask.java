@@ -1,15 +1,12 @@
 package com.plugin.CtyNotification;
 
-import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.os.AsyncTask;
-import android.widget.Toast;
+
 
 import androidx.annotation.NonNull;
 
-import org.apache.cordova.CallbackContext;
 
 import java.io.IOException;
 import java.io.InputStream;
