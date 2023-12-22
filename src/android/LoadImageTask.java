@@ -9,6 +9,8 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
+import org.apache.cordova.CallbackContext;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -24,6 +26,7 @@ public  class LoadImageTask implements Runnable{
     public  String urlBigImage;
 
    public String message;
+
     public LoadImageTask(Context context, int notificationId,String title,String subText,String message,String urlLargeIcon,String urlBigImage) {
         this.context = context;
         this.notificationId = notificationId;
@@ -62,15 +65,16 @@ public  class LoadImageTask implements Runnable{
         }
 
         // 更新主线程 UI
-        Bitmap finalIconbitmap = Iconbitmap;
-        Bitmap finalBigbitmap = Bigbitmap;
-        ((Activity) context).runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                onPostExecute(finalIconbitmap, finalBigbitmap);
-            }
-        });
+        //Bitmap finalIconbitmap = Iconbitmap;
+        //Bitmap finalBigbitmap = Bigbitmap;
+        //((Activity) context).runOnUiThread(new Runnable() {
+        //    @Override
+        //    public void run() {
+        //        onPostExecute(finalIconbitmap, finalBigbitmap);
+        //    }
+        //});
 
+        onPostExecute(Iconbitmap, Bigbitmap);
     }
 
     private void onPostExecute(Bitmap Iconbitmap,Bitmap Bigbitmap) {
