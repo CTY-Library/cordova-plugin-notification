@@ -24,7 +24,7 @@ public class CtyNoticePlugin extends  CordovaPlugin {
         String urlBigImage =args.getString(5); //大图
         String strDate =args.getString(6); //通知时间
         boolean strRepeat =Boolean.parseBoolean(args.getString(7)); //是否重复推送
-        String strType =args.getString(8); //通知类型
+        String strType =args.getString(8); //通知时间
 
         mActContext = this.cordova.getActivity().getApplicationContext();
 
@@ -45,11 +45,13 @@ public class CtyNoticePlugin extends  CordovaPlugin {
             return  true;
         }
        else if (action.equals("bigImageNotice")) {
-           cordova.getThreadPool().execute(new Runnable() {
-               public void run() {
-                   LoadImageTask(mActContext, notificationId,title,subText,message,urlLargeIco,urlBigImage)
-                   callbackContext.success("success");
-               }
+            cordova.getThreadPool().execute(new Runnable() {
+                public void run() {
+                   new  LoadImageTask(mActContext, notificationId,title,subText,message,urlLargeIco,urlBigImage);
+                    callbackContext.success("success");
+                }
+            });
+            return  true;
        }
        else if (action.equals("timedNotice")) {
             try {
