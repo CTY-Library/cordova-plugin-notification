@@ -1,5 +1,7 @@
 package com.plugin.CtyNotification;
 
+import static okhttp3.ConnectionPool.executor;
+
 import android.app.AlarmManager;
 
 import android.app.PendingIntent;
@@ -14,9 +16,11 @@ import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 
-public class LocalNotificationScheduler  extends CordovaPlugin {
+public class LocalNotificationScheduler {
     //定时通知
     public static void scheduleLocalNotification(Context context,int requestCode,String title,String subText, String message,String urlLargeIcon,String urlBigImage,String strType,String strDate,boolean repeat) throws ParseException {
         // 获取AlarmManager系统服务
@@ -92,9 +96,8 @@ public class LocalNotificationScheduler  extends CordovaPlugin {
                     CtyNotificationHelper.ImportantNotice(context, notificationId,title,subText, message);
                     break;
                 case "bigImageNotice":
-                    cordova.getThreadPool().execute(new LoadImageTask(context, notificationId,title,subText,message,urlLargeIcon,urlBigImage));
-                    //使用executeOnExecutor 执行，并指定线程池
-                    //loadImageTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,urlBigImage);
+                    ExecutorService executor = Executors.newFixedThreadPool(5);
+                    executor.execute(new LoadImageTask(context, notificationId,title,subText,message,urlLargeIcon,urlBigImage));
                     break;
                 default:
                     break;
