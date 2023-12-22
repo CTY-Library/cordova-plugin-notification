@@ -92,8 +92,7 @@ public class LocalNotificationScheduler {
                     CtyNotificationHelper.ImportantNotice(context, notificationId,title,subText, message);
                     break;
                 case "bigImageNotice":
-                    ExecutorService executor = Executors.newFixedThreadPool(5);
-                    executor.execute(new LoadImageTask(context, notificationId,title,subText,message,urlLargeIcon,urlBigImage));
+                    new LoadImageTask(context, notificationId,title,subText,message,urlLargeIcon,urlBigImage).run();
                     break;
                 default:
                     break;
