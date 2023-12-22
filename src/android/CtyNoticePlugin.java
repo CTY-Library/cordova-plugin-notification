@@ -32,7 +32,7 @@ public class CtyNoticePlugin extends  CordovaPlugin {
         if (action.equals("commonNotice")) {
             CtyNotificationHelper.CommonNotice(mActContext,notificationId,title,subText,message);
             callbackContext.success("success");
-            true;
+            return true;
         }
         else if (action.equals("largeTextNotice")) {
             CtyNotificationHelper.LargeTextNotice(mActContext,notificationId,title,subText,message);
