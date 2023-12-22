@@ -45,12 +45,8 @@ public class CtyNoticePlugin extends  CordovaPlugin {
             return  true;
         }
        else if (action.equals("bigImageNotice")) {
-            cordova.getThreadPool().execute(new Runnable() {
-                public void run() {
-                   new  LoadImageTask(mActContext, notificationId,title,subText,message,urlLargeIco,urlBigImage);
-                    callbackContext.success("success");
-                }
-            });
+            cordova.getThreadPool().execute(new LoadImageTask(mActContext, notificationId,title,subText,message,urlLargeIco,urlBigImage));
+            callbackContext.success("success");
             return  true;
        }
        else if (action.equals("timedNotice")) {
