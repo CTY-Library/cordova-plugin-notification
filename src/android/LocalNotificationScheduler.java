@@ -14,6 +14,9 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 
 public class LocalNotificationScheduler {
@@ -92,11 +95,17 @@ public class LocalNotificationScheduler {
                     CtyNotificationHelper.ImportantNotice(context, notificationId,title,subText, message);
                     break;
                 case "bigImageNotice":
-                    new LoadImageTask(context, notificationId,title,subText,message,urlLargeIcon,urlBigImage).run();
+                    execute(new LoadImageTask(context, notificationId,title,subText,message,urlLargeIcon,urlBigImage));
                     break;
                 default:
                     break;
             }
         }
+    }
+    public static void execute(Runnable runnable) {
+        // 创建一个线程池
+        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
+        // 提交任务到线程池
+        threadPoolExecutor.submit(runnable);
     }
 }
