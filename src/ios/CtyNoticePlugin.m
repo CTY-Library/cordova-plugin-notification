@@ -33,7 +33,7 @@
     //通知声音
     content.sound=[UNNotificationSound defaultSound];
     //设置从通知激活App时的lanunchImage图片
-    content.lauchImageName = @"lanunchImage";
+    //content.lauchImageName = @"lanunchImage";
 
     //通知触发时间
     UNTimeIntervalNotificationTrigger *trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:0.1 repeats:NO];
@@ -48,8 +48,8 @@
     [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
         if (error) {
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error.localizedDescription];
-        }
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+            [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+         }
     }]
 
      //返回结果
@@ -84,7 +84,7 @@
     //通知声音
     content.sound=[UNNotificationSound defaultSound];
     //设置从通知激活App时的lanunchImage图片
-    content.lauchImageName = @"lanunchImage";
+    //content.lauchImageName = @"lanunchImage";
 
     //通知触发时间
     UNTimeIntervalNotificationTrigger *trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:0.1 repeats:NO];
@@ -131,7 +131,7 @@
     //通知声音
     content.sound=[UNNotificationSound defaultSound];
     //设置从通知激活App时的lanunchImage图片
-    content.lauchImageName = @"lanunchImage";
+    //content.lauchImageName = @"lanunchImage";
 
 
     //通知触发时间
@@ -177,7 +177,7 @@
     //通知声音
     content.sound=[UNNotificationSound defaultSound];
     //设置从通知激活App时的lanunchImage图片
-    content.lauchImageName = @"lanunchImage";
+    //content.lauchImageName = @"lanunchImage";
 
     //通知触发时间
     UNTimeIntervalNotificationTrigger *trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:0.1 repeats:NO];
@@ -226,7 +226,7 @@
     //通知声音
     content.sound=[UNNotificationSound defaultSound];
     //设置从通知激活App时的lanunchImage图片
-    content.lauchImageName = @"lanunchImage";
+    //content.lauchImageName = @"lanunchImage";
 
     //通知触发时间
     NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
@@ -288,7 +288,7 @@
     //通知声音
     content.sound=[UNNotificationSound defaultSound];
     //设置从通知激活App时的lanunchImage图片
-    content.lauchImageName = @"lanunchImage";
+    //content.lauchImageName = @"lanunchImage";
 
     //通知触发时间
     UNTimeIntervalNotificationTrigger *trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:0.1 repeats:NO];
