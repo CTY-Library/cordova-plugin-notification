@@ -11,7 +11,7 @@
      -(void) userNotificationCenter:(UNUserNotificationCenter *)center didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void (^)(void))completionHandler;
      -(void) userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler;
      -(void)timedCancelNotice:(CDVInvokedUrlCommand*)command;
-     -(void)BigPicturenotice:(CDVInvokedUrlCommand*)command;
+     -(void)bigImageNotice:(CDVInvokedUrlCommand*)command;
 @end
 
 @implementation CtyNoticePlugin
@@ -68,7 +68,7 @@
     }];
 }
 
-- (void)BigPicturenotice:(CDVInvokedUrlCommand *)command{
+- (void)bigImageNotice:(CDVInvokedUrlCommand *)command{
     
     NSArray* arguments = command.arguments;
     NSString* notificationId = [arguments objectAtIndex:0];
@@ -96,31 +96,28 @@
     //设置从通知激活App时的lanunchImage图片
     //content.lauchImageName = @"lanunchImage";
 
-    //通知触发时间
-    UNTimeIntervalNotificationTrigger *trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:0.1 repeats:NO];
-
-    //设置通知请求
-    //如果使用相同的[requestWithIdentifier]会一直覆盖之前的旧通知
-    NSString* identifier = [NSUUID UUID].UUIDString;
-
-    UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
-
-    UNNotificationAttachment *attachment=[UNNotificationAttachment attachmentWithIdentifier:@"image" URL:urlBigImage options:nil error:nil];
+    UNNotificationAttachment *attachment=[UNNotificationAttachment attachmentWithIdentifier:@"imageAttachment" URL:[NSURL URLWithString:urlBigImage] options:nil error:nil];
     
     content.attachments=@[attachment];
+
+    //通知触发时间
+    UNTimeIntervalNotificationTrigger *trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:0.1 repeats:NO];
+    
+    NSString* identifier = [NSUUID UUID].UUIDString;
+
+    UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger,options:nil];
+    
     //将通知添加到UNUserNotificationCenter中
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
 
     [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
     if (error) {
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error.localizedDescription];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
      } else {
-         
-        [center addNotificationRequest:request withCompletionHandler:nil];
+        //通知添加成功后触发通知
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString: @"success"];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
      }
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     }];
 }
 
