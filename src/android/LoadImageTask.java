@@ -55,7 +55,7 @@ public  class LoadImageTask implements Runnable{
         Bitmap  Iconbitmap = null;
         Bitmap  Bigbitmap= null;
         if(urlLargeIcon!=null) {
-            Iconbitmap=doInBackground(urlLargeIcon);
+            //Iconbitmap=doInBackground(urlLargeIcon);
         }
         if(urlLargeIcon!=null) {
              Bigbitmap = doInBackground(urlBigImage);
