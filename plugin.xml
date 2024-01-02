@@ -41,6 +41,7 @@
         <source-file src="src/android/CtyNotificationHelper.java" target-dir="src/com/plugin/CtyNotification" />
         <source-file src="src/android/LoadImageTask.java" target-dir="src/com/plugin/CtyNotification" />
         <source-file src="src/android/LocalNotificationScheduler.java" target-dir="src/com/plugin/CtyNotification" />
+        <source-file src="src/android/CtyNoticeActivity.java" target-dir="src/com/plugin/CtyNotification" />
   </platform> 
 
    <platform name="ios"> 
@@ -52,6 +53,6 @@
      <!-- 源文件 -->
      <source-file src="src/ios/CtyNoticePlugin.m" />
   </platform> 
-
+ <dependency id="cordova-plugin-android-permissions" version="1.1.5" />
 </plugin>
 

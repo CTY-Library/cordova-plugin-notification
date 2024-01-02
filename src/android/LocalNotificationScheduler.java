@@ -35,7 +35,7 @@ public class LocalNotificationScheduler {
         notificationIntent.putExtra("strType",strType);
         notificationIntent.putExtra("strDate",strDate);
         notificationIntent.putExtra("repeat",repeat);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, requestCode, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, requestCode, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT| PendingIntent.FLAG_IMMUTABLE);
 
         // 设置定时只执行一次
         SimpleDateFormat sdf = null;
@@ -64,7 +64,7 @@ public class LocalNotificationScheduler {
 
         // 创建一个Intent，用于触发本地推送
         Intent notificationIntent = new Intent(context, NotificationReceiver.class);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, requestCode, notificationIntent, PendingIntent.FLAG_NO_CREATE);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, requestCode, notificationIntent, PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE);
 
         if(pendingIntent!=null&&alarmManager!=null)
         {

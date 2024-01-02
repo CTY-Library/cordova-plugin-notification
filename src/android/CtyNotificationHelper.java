@@ -1,16 +1,19 @@
 package com.plugin.CtyNotification;
 
+import android.Manifest;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.util.Log;
 
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
@@ -24,14 +27,19 @@ import java.net.URL;
 public class CtyNotificationHelper {
 
     //普通通知
-    public static void CommonNotice(Context context, int NotificationId, String title,String subText, String message) {
-        createNotificationChannel(context,NotificationId);
+    public static void CommonNotice(Context context, int NotificationId, String title, String subText, String message) {
+        createNotificationChannel(context, NotificationId);
 
         // 创建一个新的PendingIntent
-        PendingIntent pendingIntent = PendingIntent.getActivity(context, NotificationId, new Intent(context, MainActivity.class), 0);
+        PendingIntent pendingIntent;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNoticeActivity.class),  PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        } else {
+            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNoticeActivity.class), PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
+        }
 
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context,Integer.toString(NotificationId))
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, Integer.toString(NotificationId))
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle(title)
                 .setSubText(subText)
@@ -39,19 +47,27 @@ public class CtyNotificationHelper {
                 .setContentIntent(pendingIntent)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT);
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
         notificationManager.notify(NotificationId, builder.build());
     }
 
 
     //重要通知
-    public static void ImportantNotice(Context context, int NotificationId, String title,String subText,String message) {
-        createNotificationChannel(context,NotificationId);
+    public static void ImportantNotice(Context context, int NotificationId, String title, String subText, String message) {
+        createNotificationChannel(context, NotificationId);
 
         // 创建一个新的PendingIntent
-        PendingIntent pendingIntent = PendingIntent.getActivity(context, NotificationId, new Intent(context, MainActivity.class), 0);
+        PendingIntent pendingIntent;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNoticeActivity.class),  PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        } else {
+            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNoticeActivity.class), PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
+        }
 
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context,Integer.toString(NotificationId))
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, Integer.toString(NotificationId))
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle(title)
                 .setSubText(subText)
@@ -67,17 +83,32 @@ public class CtyNotificationHelper {
 
 
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
         notificationManager.notify(NotificationId, builder.build());
     }
 
     //大文本通知
-    public static void LargeTextNotice(Context context, int NotificationId, String title, String subText,String message) {
-        createNotificationChannel(context,NotificationId);
+    public static void LargeTextNotice(Context context, int NotificationId, String title, String subText, String message) {
+        createNotificationChannel(context, NotificationId);
 
         // 创建一个新的PendingIntent
-        PendingIntent pendingIntent = PendingIntent.getActivity(context, NotificationId, new Intent(context, MainActivity.class), 0);
+        PendingIntent pendingIntent;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNoticeActivity.class),  PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        } else {
+            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNoticeActivity.class), PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
+        }
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context,Integer.toString(NotificationId))
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, Integer.toString(NotificationId))
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle(title)
                 .setSubText(subText)
@@ -93,19 +124,35 @@ public class CtyNotificationHelper {
         Log.d(title, "showNotification: showNotification");
 
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            //ActivityCompat.requestPermissions(MainActivity, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, NotificationId);
+            return;
+        }
         notificationManager.notify(NotificationId, builder.build());
     }
 
     //大图片通知
-    public static void BigPictureNotice(Context context, int NotificationId, String title, String subText,String message, Bitmap Iconbitmap,Bitmap Bigbitmap) {
-        createNotificationChannel(context,NotificationId);
+    public static void BigPictureNotice(Context context, int NotificationId, String title, String subText, String message, Bitmap Iconbitmap, Bitmap Bigbitmap) {
+        createNotificationChannel(context, NotificationId);
 
-        Resources resources=context.getResources();
-        Bitmap bigPicTwo=BitmapFactory.decodeResource(resources,R.mipmap.ic_launcher);
+        Resources resources = context.getResources();
+        Bitmap bigPicTwo = BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher);
         // 创建一个新的PendingIntent
-        PendingIntent pendingIntent = PendingIntent.getActivity(context, NotificationId, new Intent(context, MainActivity.class), 0);
+        PendingIntent pendingIntent;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNoticeActivity.class),  PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        } else {
+            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNoticeActivity.class), PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
+        }
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context,Integer.toString(NotificationId))
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, Integer.toString(NotificationId))
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle(title)
                 .setSubText(subText)
@@ -118,6 +165,16 @@ public class CtyNotificationHelper {
 
 
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
         notificationManager.notify(NotificationId, builder.build());
     }
 
