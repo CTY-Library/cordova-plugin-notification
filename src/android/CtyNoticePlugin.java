@@ -5,32 +5,43 @@ import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.ParseException;
+import android.os.Build;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import org.apache.cordova.CallbackContext;
+import org.apache.cordova.CordovaInterface;
 import org.apache.cordova.CordovaPlugin;
+import org.apache.cordova.CordovaWebView;
 import org.json.JSONArray;
 import org.json.JSONException;
 
 
 public class CtyNoticePlugin extends  CordovaPlugin {
     private Context mActContext;
-
     private static final String PERMISSION = Manifest.permission.POST_NOTIFICATIONS;
+
+    @Override
+     public void initialize(CordovaInterface cordova, CordovaWebView webView){
+        super.initialize(cordova,webView);
+        mActContext = this.cordova.getActivity().getApplicationContext();
+     }    
 
     @Override
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
         int notificationId =Integer.parseInt(args.getString(0)); //通知的Id
-        if (!cordova.hasPermission(PERMISSION)) {
-            //没有权限需要申请权限
-            requestPermission(PERMISSION,notificationId,callbackContext);
+        int permissionStatus = 0;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            permissionStatus = cordova.getActivity().checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS);
         }
-        boolean isGranted=checkPermission(PERMISSION);
-        if(!isGranted)
-        {
-            callbackContext.success("error:没有发送通知的权限");
+        if (permissionStatus != PackageManager.PERMISSION_GRANTED) {
+                // 已经具有通知权限
+            // 申请通知权限
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                cordova.getActivity().requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 0);
+            }
+            callbackContext.error("没有发送通知的权限，正在申请权限");
             return  true;
         }
         String title =args.getString(1); //标题
@@ -42,7 +53,7 @@ public class CtyNoticePlugin extends  CordovaPlugin {
         boolean strRepeat =Boolean.parseBoolean(args.getString(7)); //是否重复推送
         String strType =args.getString(8); //通知时间
 
-        mActContext = this.cordova.getActivity().getApplicationContext();
+      
 
         //初始化
         if (action.equals("commonNotice")) {
@@ -95,13 +106,33 @@ public class CtyNoticePlugin extends  CordovaPlugin {
         return  false;
     }
 
-    //申请权限
-    private void requestPermission(String permission,int REQUEST_CODE, CallbackContext callbackContext) {
-        ActivityCompat.requestPermissions(cordova.getActivity(), new String[]{permission}, REQUEST_CODE);
-    }
-
     //检测权限
     private boolean checkPermission(String permission) {
-        return ContextCompat.checkSelfPermission(cordova.getActivity(), permission) == PackageManager.PERMISSION_GRANTED;
+        return ContextCompat.checkSelfPermission(mActContext, permission) == PackageManager.PERMISSION_GRANTED;
+    }
+
+
+    private void requestPermissions(CallbackContext callbackContext) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            int permission = PackageManager.PERMISSION_DENIED;
+            String[] permissions = new String[]{
+                    Manifest.permission.POST_NOTIFICATIONS
+            };
+            cordova.requestPermissions(this, permission, permissions);
+        } else {
+            callbackContext.success();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) throws JSONException {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == PackageManager.PERMISSION_DENIED) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+            } else {
+            }
+        }
     }
 }

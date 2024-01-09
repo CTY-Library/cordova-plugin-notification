@@ -17,9 +17,6 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
-import com.zhongzilian.chestnutapp.MainActivity;
-import com.zhongzilian.chestnutapp.R;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -37,10 +34,8 @@ public class CtyNotificationHelper {
         } else {
             pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNoticeActivity.class), PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
         }
-
-
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, Integer.toString(NotificationId))
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(context.getApplicationInfo().icon)
                 .setContentTitle(title)
                 .setSubText(subText)
                 .setContentText(message)
@@ -68,7 +63,7 @@ public class CtyNotificationHelper {
 
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, Integer.toString(NotificationId))
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(context.getApplicationInfo().icon)
                 .setContentTitle(title)
                 .setSubText(subText)
                 .setContentText(message)
@@ -109,7 +104,7 @@ public class CtyNotificationHelper {
         }
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, Integer.toString(NotificationId))
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(context.getApplicationInfo().icon)
                 .setContentTitle(title)
                 .setSubText(subText)
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
@@ -143,7 +138,7 @@ public class CtyNotificationHelper {
         createNotificationChannel(context, NotificationId);
 
         Resources resources = context.getResources();
-        Bitmap bigPicTwo = BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher);
+        Bitmap bigPicTwo = BitmapFactory.decodeResource(resources, context.getApplicationInfo().icon);
         // 创建一个新的PendingIntent
         PendingIntent pendingIntent;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
@@ -153,7 +148,7 @@ public class CtyNotificationHelper {
         }
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, Integer.toString(NotificationId))
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(context.getApplicationInfo().icon)
                 .setContentTitle(title)
                 .setSubText(subText)
                 .setContentText(message)
