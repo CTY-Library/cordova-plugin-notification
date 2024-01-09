@@ -20,7 +20,7 @@ import org.json.JSONException;
 
 public class CtyNoticePlugin extends  CordovaPlugin {
     private Context mActContext;
-    private static final String PERMISSION = Manifest.permission.POST_NOTIFICATIONS;
+    private static final String PERMISSION = Manifest.permission.ACCESS_NOTIFICATION_POLICY;
 
     @Override
      public void initialize(CordovaInterface cordova, CordovaWebView webView){
@@ -33,16 +33,16 @@ public class CtyNoticePlugin extends  CordovaPlugin {
         int notificationId =Integer.parseInt(args.getString(0)); //通知的Id
         int permissionStatus = 0;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            permissionStatus = cordova.getActivity().checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS);
+            permissionStatus = cordova.getActivity().checkSelfPermission(Manifest.permission.ACCESS_NOTIFICATION_POLICY);
         }
         if (permissionStatus != PackageManager.PERMISSION_GRANTED) {
                 // 已经具有通知权限
             // 申请通知权限
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                cordova.getActivity().requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 0);
+                requestPermissions(callbackContext);
             }
-            callbackContext.error("没有发送通知的权限，正在申请权限");
-            return  true;
+            //callbackContext.error("没有发送通知的权限，正在申请权限");
+            //return  true;
         }
         String title =args.getString(1); //标题
         String subText =args.getString(2); //子标题
@@ -52,8 +52,6 @@ public class CtyNoticePlugin extends  CordovaPlugin {
         String strDate =args.getString(6); //通知时间
         boolean strRepeat =Boolean.parseBoolean(args.getString(7)); //是否重复推送
         String strType =args.getString(8); //通知时间
-
-      
 
         //初始化
         if (action.equals("commonNotice")) {
@@ -116,7 +114,8 @@ public class CtyNoticePlugin extends  CordovaPlugin {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             int permission = PackageManager.PERMISSION_DENIED;
             String[] permissions = new String[]{
-                    Manifest.permission.POST_NOTIFICATIONS
+                    Manifest.permission.POST_NOTIFICATIONS,
+                    Manifest.permission.ACCESS_NOTIFICATION_POLICY
             };
             cordova.requestPermissions(this, permission, permissions);
         } else {
