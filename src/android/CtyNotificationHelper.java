@@ -1,4 +1,4 @@
-package com.plugin.CtyNotification;
+package cty.cordova.plugin.CtyNotification;
 
 import android.Manifest;
 import android.app.NotificationChannel;
@@ -24,15 +24,15 @@ import java.net.URL;
 public class CtyNotificationHelper {
 
     //普通通知
-    public static void CommonNotice(Context context, int NotificationId, String title, String subText, String message) {
+    public static void CommonNotification(Context context, int NotificationId, String title, String subText, String message) {
         createNotificationChannel(context, NotificationId);
 
         // 创建一个新的PendingIntent
         PendingIntent pendingIntent;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNoticeActivity.class),  PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNotificationActivity.class),  PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         } else {
-            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNoticeActivity.class), PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
+            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNotificationActivity.class), PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
         }
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, Integer.toString(NotificationId))
                 .setSmallIcon(context.getApplicationInfo().icon)
@@ -50,15 +50,15 @@ public class CtyNotificationHelper {
 
 
     //重要通知
-    public static void ImportantNotice(Context context, int NotificationId, String title, String subText, String message) {
+    public static void ImportantNotification(Context context, int NotificationId, String title, String subText, String message) {
         createNotificationChannel(context, NotificationId);
 
         // 创建一个新的PendingIntent
         PendingIntent pendingIntent;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNoticeActivity.class),  PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNotificationActivity.class),  PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         } else {
-            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNoticeActivity.class), PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
+            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNotificationActivity.class), PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
         }
 
 
@@ -92,15 +92,15 @@ public class CtyNotificationHelper {
     }
 
     //大文本通知
-    public static void LargeTextNotice(Context context, int NotificationId, String title, String subText, String message) {
+    public static void LargeTextNotification(Context context, int NotificationId, String title, String subText, String message) {
         createNotificationChannel(context, NotificationId);
 
         // 创建一个新的PendingIntent
         PendingIntent pendingIntent;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNoticeActivity.class),  PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNotificationActivity.class),  PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         } else {
-            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNoticeActivity.class), PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
+            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNotificationActivity.class), PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
         }
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, Integer.toString(NotificationId))
@@ -134,24 +134,24 @@ public class CtyNotificationHelper {
     }
 
     //大图片通知
-    public static void BigPictureNotice(Context context, int NotificationId, String title, String subText, String message, Bitmap Iconbitmap, Bitmap Bigbitmap) {
+    public static void BigPictureNotification(Context context, int NotificationId, String title, String subText, String message, Bitmap Iconbitmap, Bitmap Bigbitmap) {
         createNotificationChannel(context, NotificationId);
 
         Resources resources = context.getResources();
         Bitmap bigPicTwo = BitmapFactory.decodeResource(resources, context.getApplicationInfo().icon);
         // 创建一个新的PendingIntent
         PendingIntent pendingIntent;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNoticeActivity.class),  PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNotificationActivity.class),  PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         } else {
-            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNoticeActivity.class), PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
+            pendingIntent = PendingIntent.getActivity(context, NotificationId,  new Intent(context, CtyNotificationActivity.class), PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
         }
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, Integer.toString(NotificationId))
                 .setSmallIcon(context.getApplicationInfo().icon)
                 .setContentTitle(title)
                 .setSubText(subText)
-                .setContentText(message)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
                 .setStyle(new NotificationCompat.BigPictureStyle().bigPicture(Bigbitmap))
                 .setLargeIcon(Iconbitmap)
                 .setAutoCancel(true)

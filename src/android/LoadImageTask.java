@@ -1,12 +1,10 @@
-package com.plugin.CtyNotification;
+package cty.cordova.plugin.CtyNotification;
 
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 
-
 import androidx.annotation.NonNull;
-
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -77,6 +75,6 @@ public  class LoadImageTask implements Runnable{
     private void onPostExecute(Bitmap Iconbitmap,Bitmap Bigbitmap) {
         // 更新 UI
         //Toast.makeText(context, result, Toast.LENGTH_SHORT).show();
-        CtyNotificationHelper.BigPictureNotice(context, notificationId,title,subText,message,Iconbitmap,Bigbitmap);
+        CtyNotificationHelper.BigPictureNotification(context, notificationId,title,subText,message,Iconbitmap,Bigbitmap);
     }
 }

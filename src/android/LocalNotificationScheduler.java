@@ -1,7 +1,6 @@
-package com.plugin.CtyNotification;
+package cty.cordova.plugin.CtyNotification;
 
 import android.app.AlarmManager;
-
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -12,8 +11,6 @@ import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -86,13 +83,13 @@ public class LocalNotificationScheduler {
             switch (strType)
             {
                 case "commonNotice":
-                    CtyNotificationHelper.CommonNotice(context, notificationId,title,subText, message);
+                    CtyNotificationHelper.CommonNotification(context, notificationId,title,subText, message);
                     break;
                 case "largeTextNotice":
-                    CtyNotificationHelper.LargeTextNotice(context, notificationId,title,subText, message);
+                    CtyNotificationHelper.LargeTextNotification(context, notificationId,title,subText, message);
                     break;
                 case "importantNotice":
-                    CtyNotificationHelper.ImportantNotice(context, notificationId,title,subText, message);
+                    CtyNotificationHelper.ImportantNotification(context, notificationId,title,subText, message);
                     break;
                 case "bigImageNotice":
                     execute(new LoadImageTask(context, notificationId,title,subText,message,urlLargeIcon,urlBigImage));

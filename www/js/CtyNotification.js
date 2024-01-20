@@ -15,7 +15,7 @@ var CtyLocationNotification = {
         strRepeat,
         strType
     ) {
-        exec(success, error, 'CtyNoticePlugin', 'commonNotice', [notificationId,title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat,strType]);
+        exec(success, error, 'CtyNotification', 'commonNotification', [notificationId,title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat,strType]);
     },
     //大文本通知
     largeTextNotice: function(
@@ -31,7 +31,7 @@ var CtyLocationNotification = {
         strRepeat,
         strType
     ) {
-        exec(success, error, 'CtyNoticePlugin', 'largeTextNotice', [notificationId,title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat,strType]);
+        exec(success, error, 'CtyNotification', 'largeTextNotification', [notificationId,title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat,strType]);
     },
     //重要内容通知
     importantNotice: function(
@@ -47,7 +47,7 @@ var CtyLocationNotification = {
         strRepeat,
         strType
     ) {
-        exec(success, error, 'CtyNoticePlugin', 'importantNotice', [notificationId,title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat,strType]);
+        exec(success, error, 'CtyNotification', 'importantNotification', [notificationId,title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat,strType]);
     },
     //大图通知
     bigImageNotice: function(
@@ -63,7 +63,7 @@ var CtyLocationNotification = {
         strRepeat,
         strType
     ) {
-        exec(success, error, 'CtyNoticePlugin', 'bigImageNotice', [notificationId,title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat,strType]);
+        exec(success, error, 'CtyNotification', 'bigImageNotification', [notificationId,title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat,strType]);
     },
     //定时通知
     timedNotice: function(
@@ -79,7 +79,7 @@ var CtyLocationNotification = {
         strRepeat,
         strType
     ) {
-        exec(success, error, 'CtyNoticePlugin', 'timedNotice', [notificationId,title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat,strType]);
+        exec(success, error, 'CtyNotification', 'timedNotication', [notificationId,title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat,strType]);
     },
    //定时通知
     timedCancelNotice: function(
@@ -95,7 +95,7 @@ var CtyLocationNotification = {
         strRepeat,
         strType
     ) {
-        exec(success, error, 'CtyNoticePlugin', 'timedCancelNotice', [notificationId,title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat,strType]);
+        exec(success, error, 'CtyNotification', 'timedCancelNotication', [notificationId,title, subText, message, urlLargeIco,urlBigImage,strDate,strRepeat,strType]);
     }
 }
 

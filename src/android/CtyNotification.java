@@ -1,4 +1,4 @@
-package com.plugin.CtyNotification;
+package cty.cordova.plugin.CtyNotification;
 
 
 import android.Manifest;
@@ -7,7 +7,6 @@ import android.content.pm.PackageManager;
 import android.net.ParseException;
 import android.os.Build;
 
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import org.apache.cordova.CallbackContext;
@@ -18,7 +17,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 
 
-public class CtyNoticePlugin extends  CordovaPlugin {
+public class CtyNotification extends  CordovaPlugin {
     private Context mActContext;
     private static final String PERMISSION = Manifest.permission.ACCESS_NOTIFICATION_POLICY;
 
@@ -54,27 +53,27 @@ public class CtyNoticePlugin extends  CordovaPlugin {
         String strType =args.getString(8); //通知时间
 
         //初始化
-        if (action.equals("commonNotice")) {
-            CtyNotificationHelper.CommonNotice(mActContext,notificationId,title,subText,message);
+        if (action.equals("commonNotification")) {
+            CtyNotificationHelper.CommonNotification(mActContext,notificationId,title,subText,message);
             callbackContext.success("success");
             return true;
         }
-        else if (action.equals("largeTextNotice")) {
-            CtyNotificationHelper.LargeTextNotice(mActContext,notificationId,title,subText,message);
+        else if (action.equals("largeTextNotification")) {
+            CtyNotificationHelper.LargeTextNotification(mActContext,notificationId,title,subText,message);
             callbackContext.success("success");
             return  true;
         }
-       else  if (action.equals("importantNotice")) {
-            CtyNotificationHelper.ImportantNotice(mActContext,notificationId,title,subText,message);
+       else  if (action.equals("importantNotification")) {
+            CtyNotificationHelper.ImportantNotification(mActContext,notificationId,title,subText,message);
             callbackContext.success("success");
             return  true;
         }
-       else if (action.equals("bigImageNotice")) {
+       else if (action.equals("bigImageNotification")) {
             cordova.getThreadPool().execute(new LoadImageTask(mActContext, notificationId,title,subText,message,urlLargeIco,urlBigImage));
             callbackContext.success("success");
             return  true;
        }
-       else if (action.equals("timedNotice")) {
+       else if (action.equals("timedNotication")) {
             try {
                 LocalNotificationScheduler.scheduleLocalNotification(mActContext,notificationId,title,subText,message,urlLargeIco,urlBigImage,strType, strDate,strRepeat);
                 callbackContext.success("success");
@@ -87,7 +86,7 @@ public class CtyNoticePlugin extends  CordovaPlugin {
                 throw new RuntimeException(e);
             }
         }
-        else if (action.equals("timedCancelNotice")) {
+        else if (action.equals("timedCancelNotication")) {
             try {
                 LocalNotificationScheduler.scheduleCancelLocalNotification(mActContext,notificationId);
                 callbackContext.success("success");
