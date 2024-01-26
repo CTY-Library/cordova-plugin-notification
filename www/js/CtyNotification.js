@@ -1,6 +1,6 @@
 const exec = require('cordova/exec');
 const argscheck = require('cordova/argscheck');
-const CTYNotification = require('./CtyNotification');
+const CTYNotification = require('./CtyNotificationConstants');
 /**
  * @exports CTYNotification
  */

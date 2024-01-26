@@ -7,7 +7,7 @@
   <name>Notification</name>  
 
   <js-module src="www/js/CtyNotificationConstants.js" name="CTYNotification">
-          <clobbers target="CTYNotification" />
+          <clobbers target="CtyNotificationConstants" />
   </js-module>
   
    <js-module name="CTYNotification" src="www/js/CtyNotification.js"> 
