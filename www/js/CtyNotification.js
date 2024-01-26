@@ -94,6 +94,6 @@ CTYNotification.sendLocalNotification = function(successCallback, errorCallback,
     exec(successCallback, errorCallback, 'CtyNotification', notificationType, [notificationId, title, subtitle, message, thumbnail, image, delay, repeat, interval, timedType]);
 }
 CTYNotification.sendLocalNotification = function(){
-    
+    exec(successCallback, errorCallback, 'CtyNotification', 'timedCancelNotice', [notificationId, '', '', '', '', '', '', true, '', '']);
 }
 module.exports = CTYNotification;

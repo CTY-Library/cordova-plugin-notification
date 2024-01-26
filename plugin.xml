@@ -9,6 +9,9 @@
   <js-module name="CtyNotification" src="www/js/CtyNotification.js"> 
     <clobbers target="CtyNotification"/> 
   </js-module> 
+<js-module src="www/js/CtyNotificationConstants.js" name="CtyNotification">
+        <clobbers target="CtyNotification" />
+</js-module>
 
   <platform name="android"> 
     <config-file parent="/*" target="res/xml/config.xml"> 
