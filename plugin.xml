@@ -18,7 +18,7 @@
   <platform name="android"> 
     <config-file parent="/*" target="res/xml/config.xml"> 
       <feature name="CtyNotification"> 
-        <param name="android-package" value="cty.cordova.plugin.CtyNotification"/> 
+        <param name="android-package" value="cty.cordova.plugin.CtyNotification.CtyNotification"/> 
       </feature> 
     </config-file>
     <config-file parent="/*" target="AndroidManifest.xml"> 
