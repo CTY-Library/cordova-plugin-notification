@@ -6,12 +6,14 @@
   version="1.0.3">  
   <name>Notification</name>  
 
+  <js-module src="www/js/CtyNotificationConstants.js" name="CTYNotification">
+          <clobbers target="CTYNotification" />
+  </js-module>
+  
    <js-module name="CTYNotification" src="www/js/CtyNotification.js"> 
     <clobbers target="CTYNotification"/> 
   </js-module> 
- <js-module src="www/js/CtyNotificationConstants.js" name="CTYNotification">
-        <clobbers target="CTYNotification" />
- </js-module>
+ 
 
   <platform name="android"> 
     <config-file parent="/*" target="res/xml/config.xml"> 

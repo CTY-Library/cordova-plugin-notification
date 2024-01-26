@@ -1,14 +1,14 @@
 const exec = require('cordova/exec');
 const argscheck = require('cordova/argscheck');
-const Notification = require('./Notification');
+const CTYNotification = require('./CtyNotification');
 /**
  * @exports CTYNotification
  */
-const CTYNotification = {
+const CTYNotificationExport = {
 }
 // Tack on the CTYNotification Constants to the base CTYNotification plugin.
 for (const key in Notification) {
-    CTYNotification[key] = Notification[key];
+    CTYNotificationExport[key] = Notification[key];
 }
 /**
  * Callback function that provides an error message.
@@ -56,8 +56,8 @@ for (const key in Notification) {
  * @param {module:CTYNotification.onError} errorCallback
  * @param {module:CTYNotification.NotificationOptions} options NotificationOptions
  */
-CTYNotification.sendLocalNotification = function(successCallback, errorCallback, options){
-    argscheck.checkArgs('fFO', 'CTYNotification.sendLocalNotification', arguments);
+CTYNotificationExport.sendLocalNotification = function(successCallback, errorCallback, options){
+    argscheck.checkArgs('fFO', 'CTYNotificationExport.sendLocalNotification', arguments);
     options = options || {};
     const getValue = argscheck.getValue;
     const notificationId = getValue(options.quality, Number((Date.now()+'').slice(4)));
@@ -93,7 +93,7 @@ CTYNotification.sendLocalNotification = function(successCallback, errorCallback,
     }
     exec(successCallback, errorCallback, 'CtyNotification', notificationType, [notificationId, title, subtitle, message, thumbnail, image, delay, repeat, interval, timedType]);
 }
-CTYNotification.sendLocalNotification = function(){
+CTYNotificationExport.sendLocalNotification = function(){
     exec(successCallback, errorCallback, 'CtyNotification', 'timedCancelNotice', [notificationId, '', '', '', '', '', '', true, '', '']);
 }
-module.exports = CTYNotification;
+module.exports = CTYNotificationExport;
