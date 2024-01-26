@@ -6,7 +6,7 @@
   version="1.0.3">  
   <name>Notification</name>  
 
-  <js-module src="www/js/CtyNotificationConstants.js" name="CTYNotification">
+  <js-module src="www/js/CtyNotificationConstants.js" name="CtyNotificationConstants">
           <clobbers target="CtyNotificationConstants" />
   </js-module>
   
