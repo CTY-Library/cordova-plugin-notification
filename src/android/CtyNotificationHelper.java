@@ -151,7 +151,6 @@ public class CtyNotificationHelper {
                 .setSmallIcon(context.getApplicationInfo().icon)
                 .setContentTitle(title)
                 .setSubText(subText)
-                .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
                 .setStyle(new NotificationCompat.BigPictureStyle().bigPicture(Bigbitmap))
                 .setLargeIcon(Iconbitmap)
                 .setAutoCancel(true)
