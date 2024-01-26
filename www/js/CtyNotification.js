@@ -7,8 +7,8 @@ const CTYNotification = require('./CtyNotificationConstants');
 const CTYNotificationExport = {
 }
 // Tack on the CTYNotification Constants to the base CTYNotification plugin.
-for (const key in Notification) {
-    CTYNotificationExport[key] = Notification[key];
+for (const key in CTYNotification) {
+    CTYNotificationExport[key] = CTYNotification[key];
 }
 /**
  * Callback function that provides an error message.
