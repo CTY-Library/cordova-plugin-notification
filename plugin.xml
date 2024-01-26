@@ -43,11 +43,11 @@
                 </intent-filter>
             </receiver>
      </config-file>
-        <source-file src="src/android/CtyNotification.java" target-dir="src/cty.cordova.plugin.CtyNotification" />
-        <source-file src="src/android/CtyNotificationHelper.java" target-dir="src/cty.cordova.plugin.CtyNotification" />
-        <source-file src="src/android/LoadImageTask.java" target-dir="src/cty.cordova.plugin.CtyNotification" />
-        <source-file src="src/android/LocalNotificationScheduler.java" target-dir="src/cty.cordova.plugin.CtyNotification" />
-        <source-file src="src/android/CtyNotificationActivity.java" target-dir="src/cty.cordova.plugin.CtyNotification" />
+        <source-file src="src/android/CtyNotification.java" target-dir="src/cty/cordova/plugin/CtyNotification" />
+        <source-file src="src/android/CtyNotificationHelper.java" target-dir="src/cty/cordova/plugin/CtyNotification" />
+        <source-file src="src/android/LoadImageTask.java" target-dir="src/cty/cordova/plugin/CtyNotification" />
+        <source-file src="src/android/LocalNotificationScheduler.java" target-dir="src/cty/cordova/plugin/CtyNotification" />
+        <source-file src="src/android/CtyNotificationActivity.java" target-dir="src/cty/cordova/plugin/CtyNotification" />
   </platform> 
 
    <platform name="ios"> 
