@@ -50,7 +50,8 @@ public class CtyNotification extends  CordovaPlugin {
         String urlBigImage =args.getString(5); //大图
         String strDate =args.getString(6); //通知时间
         boolean strRepeat =Boolean.parseBoolean(args.getString(7)); //是否重复推送
-        String strType =args.getString(8); //通知时间
+        String interval =args.getString(8); //通知时间
+        String strType =args.getString(9); //通知时间
 
         //初始化
         if (action.equals("commonNotification")) {
@@ -75,7 +76,7 @@ public class CtyNotification extends  CordovaPlugin {
        }
        else if (action.equals("timedNotication")) {
             try {
-                LocalNotificationScheduler.scheduleLocalNotification(mActContext,notificationId,title,subText,message,urlLargeIco,urlBigImage,strType, strDate,strRepeat);
+                LocalNotificationScheduler.scheduleLocalNotification(mActContext,notificationId,title,subText,message,urlLargeIco,urlBigImage,strType, strDate,interval,strRepeat);
                 callbackContext.success("success");
                 return  true;
             } catch (ParseException e) {
