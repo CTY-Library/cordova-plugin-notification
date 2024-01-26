@@ -2,7 +2,7 @@ var exec = require('cordova/exec');
 
 var CtyLocationNotification = {
     //普通通知  
-    commonNotice: function(
+    commonNotification: function(
         success,
         error,
         notificationId,
