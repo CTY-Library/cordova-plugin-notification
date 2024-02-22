@@ -51,13 +51,13 @@
   </platform> 
 
    <platform name="ios"> 
-    <config-file parent="/*" target="config.xml"> 
-      <feature name="CtyNoticePlugin"> 
-        <param name="ios-package" value="CtyNoticePlugin"/> 
+    <config-file parent="/*" target="config.xml">
+      <feature name="CtyNotification"> 
+        <param name="ios-package" value="CtyNotification"/> 
       </feature> 
     </config-file>  
      <!-- 源文件 -->
-     <source-file src="src/ios/CtyNoticePlugin.m" />
+     <source-file src="src/ios/CtyNotification.m" />
   </platform> 
  <dependency id="cordova-plugin-android-permissions" version="1.1.5" />
 </plugin>
