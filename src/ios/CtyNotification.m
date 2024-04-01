@@ -10,10 +10,11 @@
      -(void) timedNotice:(CDVInvokedUrlCommand*)command;
      -(void) userNotificationCenter:(UNUserNotificationCenter *)center didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void (^)(void))completionHandler;
      -(void) userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler;
-     -(void)timedCancelNotice:(CDVInvokedUrlCommand*)command;
-     -(void)bigImageNotice:(CDVInvokedUrlCommand*)command;
-     -(void)largeTextNotice:(CDVInvokedUrlCommand*)command;
-     -(void)importantNotice:(CDVInvokedUrlCommand*)command;
+     -(void) timedCancelNotice:(CDVInvokedUrlCommand*)command;
+     -(void) bigImageNotice:(CDVInvokedUrlCommand*)command;
+     -(void) largeTextNotice:(CDVInvokedUrlCommand*)command;
+     -(void) importantNotice:(CDVInvokedUrlCommand*)command;
+     -(void) getDeviceToken:(CDVInvokedUrlCommand*)command;
 @end
 
 @implementation CtyNotification
@@ -57,18 +58,22 @@
     UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
 
     //将通知添加到UNUserNotificationCenter中
+    Boolean *bResult=true;
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
-
     [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
-    if (error) {
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error.localizedDescription];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-     } else {
-        [center addNotificationRequest:request withCompletionHandler:nil];
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString: @"success"];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-     }
+         if (error) {
+            *bResult=false;
+        }
     }];
+    if(bResult)
+    {
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString: @"error"];
+    }
+    else
+    {
+       pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString: @"success"];
+    }
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
  -(void)largeTextNotice:(CDVInvokedUrlCommand*)command {
@@ -110,18 +115,22 @@
     UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
 
     //将通知添加到UNUserNotificationCenter中
+    Boolean *bResult=true;
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
-
     [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
-    if (error) {
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error.localizedDescription];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-     } else {
-        [center addNotificationRequest:request withCompletionHandler:nil];
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString: @"success"];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-     }
+         if (error) {
+            *bResult=false;
+        }
     }];
+    if(bResult)
+    {
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString: @"error"];
+    }
+    else
+    {
+       pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString: @"success"];
+    }
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
 - (void)importantNotice:(CDVInvokedUrlCommand *)command {
@@ -163,18 +172,22 @@
     UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
 
     //将通知添加到UNUserNotificationCenter中
+    Boolean *bResult=true;
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
-
     [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
-    if (error) {
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error.localizedDescription];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-     } else {
-        [center addNotificationRequest:request withCompletionHandler:nil];
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString: @"success"];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-     }
+         if (error) {
+            *bResult=false;
+        }
     }];
+    if(bResult)
+    {
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString: @"error"];
+    }
+    else
+    {
+       pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString: @"success"];
+    }
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
 
@@ -231,17 +244,22 @@
     UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
     
     //将通知添加到UNUserNotificationCenter中
+    Boolean *bResult=true;
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
-
     [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
-    if (error) {
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error.localizedDescription];
-     } else {
-        //通知添加成功后触发通知
-        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString: @"success"];
-     }
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+         if (error) {
+            *bResult=false;
+        }
     }];
+    if(bResult)
+    {
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString: @"error"];
+    }
+    else
+    {
+       pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString: @"success"];
+    }
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
 //定时通知
@@ -351,17 +369,22 @@
     UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
 
     //将通知添加到UNUserNotificationCenter中
+    Boolean *bResult=true;
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
     [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
-        if (error) {
-            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
-
+         if (error) {
+            *bResult=false;
         }
     }];
-    
-    pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString: @"success"];
+    if(bResult)
+    {
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString: @"error"];
+    }
+    else
+    {
+       pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString: @"success"];
+    }
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-
     //当有重复任务时调用
     if(repeats){
     [self timedNoticeRepeat:command];
@@ -470,15 +493,23 @@
     UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
 
     //将通知添加到UNUserNotificationCenter中
+
+
+    Boolean *bResult=true;
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
     [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
         if (error) {
-            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
-
+            *bResult=false;
         }
     }];
-    
-    pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString: @"success"];
+    if(bResult)
+    {
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString: @"error"];
+    }
+    else
+    {
+       pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString: @"success"];
+    }
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
@@ -520,14 +551,23 @@
     UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
 
     //将通知添加到UNUserNotificationCenter中
+    Boolean *bResult=true;
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
     [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
-        if (error) {
-            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
+         if (error) {
+            *bResult=false;
         }
     }];
+    if(bResult)
+    {
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString: @"error"];
+    }
+    else
+    {
+       pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString: @"success"];
+    }
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
-
 
 //仅当应用程序在前台时，才会调用这个方法，如果未实现该方法，通知将不会被触发
 -(void)userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
@@ -539,4 +579,29 @@
     completionHandler();
 }
 
+(void) getDeviceToken:(CDVInvokedUrlCommand*)command
+{
+    NSString *systemVersion = [UIDevice currentDevice].systemVersion;
+    double versionNumber = [systemVersion doubleValue];
+    NSString* strToken =@"";
+    if (versionNumber>13.0) {
+            NSUInteger dataLength = deviceToken.length;
+            if (dataLength == 0) {
+               return;
+            }
+            const unsigned char *dataBuffer = (const unsigned char *)deviceToken.bytes;
+            NSMutableString *hexTokenString  = [NSMutableString stringWithCapacity:(dataLength * 2)];
+            for (int i = 0; i < dataLength; ++i) {
+              [hexTokenString appendFormat:@"%02x", dataBuffer[i]];
+            }
+            strToken=[NSString stringWithFormat:@"%@", hexTokenString];;
+    }
+    else
+    {
+        NSString *hexTokenString = [[deviceToken description] stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"<>"]];
+        hexTokenString = [hexTokenString stringByReplacingOccurrencesOfString:@" " withString:@""];
+        strToken=hexTokenString;
+    }
+    [self.commandDelegate sendPluginResult:strToken callbackId:command.callbackId];
+}
 @end
