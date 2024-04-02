@@ -58,6 +58,24 @@
     UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
 
     //将通知添加到UNUserNotificationCenter中
+    Boolean  initResult=true;
+    Boolean *bResult=&initResult;
+    UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+    [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+         if (error) {
+            *bResult=false;
+        }
+    }];
+    if(bResult)
+    {
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString: @"error"];
+    }
+    else
+    {
+       pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString: @"success"];
+    }
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+}
     Boolean *bResult=true;
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
     [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
@@ -115,7 +133,8 @@
     UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
 
     //将通知添加到UNUserNotificationCenter中
-    Boolean *bResult=true;
+    Boolean  initResult=true;
+    Boolean *bResult=&initResult;
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
     [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
          if (error) {
@@ -172,7 +191,8 @@
     UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
 
     //将通知添加到UNUserNotificationCenter中
-    Boolean *bResult=true;
+    Boolean  initResult=true;
+    Boolean *bResult=&initResult;
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
     [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
          if (error) {
@@ -244,7 +264,8 @@
     UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
     
     //将通知添加到UNUserNotificationCenter中
-    Boolean *bResult=true;
+    Boolean  initResult=true;
+    Boolean *bResult=&initResult;
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
     [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
          if (error) {
@@ -273,8 +294,8 @@
     NSString* urlBigImage = [command.arguments objectAtIndex:5];
     NSString* strDate = [command.arguments objectAtIndex:6];
     NSString* strRepeat = [command.arguments objectAtIndex:7];
-    NSString* interval =[arguments objectAtIndex:8]; //通知间隔时间
-    NSString* strType = [arguments objectAtIndex:9];
+    NSString* interval =[command.arguments objectAtIndex:8]; //通知间隔时间
+    NSString* strType = [command.arguments objectAtIndex:9];
 
     //通知内容
     UNMutableNotificationContent *content = [[UNMutableNotificationContent alloc] init];
@@ -300,7 +321,8 @@
     NSCalendar *calendar = [NSCalendar currentCalendar];
     NSDateComponents *dateComponents = [calendar components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond fromDate:nsDate];
 
-    BOOL* repeats =[strRepeat boolValue];
+    Boolean initRepeats=[strRepeat boolValue];
+    Boolean* repeats =&initRepeats;
     
     NSURL *imageURL=[NSURL URLWithString:urlBigImage];
     
@@ -316,7 +338,7 @@
     if (attachment) {
         // Attach the image to the notification content
         content.attachments = @[attachment];
-    } 
+    }
     //周期日历触发器   //设置通知触发时间  //设置通知触发时间  
 
     if(repeats)
@@ -327,38 +349,14 @@
         {
             NSDateComponents *oneTime = [[NSDateComponents alloc] init];
             oneTime.second=intValue;
-            NSDate *nextDate = [calendar dateByAddingComponents:oneTime toDate:[calendar dateFromComponents:dateComponents] options:0] //时间相加
+            NSDate *nextDate = [calendar dateByAddingComponents:oneTime toDate:[calendar dateFromComponents:dateComponents] options:0]; //时间相加
             NSDateComponents *dateComponents = [calendar components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond fromDate:nextDate];
             UNCalendarNotificationTrigger *trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:dateComponents repeats:YES];
         }
         else
         {
             NSDate *nsIntervalDate = [dateFormatter dateFromString:interval];//间隔时间为日期时
-            NSDateComponents *oneTime = [[NSDateComponents alloc] init];
-             if(nsIntervalDate.year>0)
-             {
-                oneTime.year=nsIntervalDate.year;
-             }
-             if(nsIntervalDate.month>0)
-             {
-                oneTime.month=nsIntervalDate.month;
-             }
-             if(nsIntervalDate.day>0)
-             {
-                oneTime.day=nsIntervalDate.day;
-             }
-             if(nsIntervalDate.hour>0)
-             {
-                oneTime.hour=nsIntervalDate.hour;
-             }
-             if(nsIntervalDate.minute>0)
-             {
-                oneTime.minute=nsIntervalDate.minute;
-             }
-             if(nsIntervalDate.second>0)
-             {
-                oneTime.second=nsIntervalDate.second;
-             }
+            NSDateComponents *oneTime = [calendar components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond     fromDate:nsIntervalDate];
             UNCalendarNotificationTrigger *trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:oneTime repeats:YES];
         }
     } 
@@ -369,7 +367,8 @@
     UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
 
     //将通知添加到UNUserNotificationCenter中
-    Boolean *bResult=true;
+    Boolean  initResult=true;
+    Boolean *bResult=&initResult;
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
     [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
          if (error) {
@@ -428,7 +427,8 @@
     //周期日历触发器
     NSCalendar *calendar = [NSCalendar currentCalendar];
 
-    BOOL* repeats =[strRepeat boolValue];
+    Boolean initRepeats=[strRepeat boolValue];
+    Boolean* repeats =&initRepeats;
     
     NSURL *imageURL=[NSURL URLWithString:urlBigImage];
     
@@ -446,45 +446,25 @@
         content.attachments = @[attachment];
     } 
     //周期日历触发器   //设置通知触发时间  //设置通知触发时间  
-
-    NSDateComponents *oneTime = [calendar components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond fromDate:nextDate];
     if(repeats)
     {
         int intValue=[interval intValue];
         //判断是否是Int值
         if(intValue!=0||[interval isEqualToString:@"0"])
         {
+            NSDateComponents *oneTime = [[NSDateComponents alloc] init];
             oneTime.second=intValue;
-            UNCalendarNotificationTrigger *trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:dateComponents oneTime:YES];
+            NSDate *nextDate = [calendar dateByAddingComponents:oneTime toDate:[calendar dateFromComponents:dateComponents] options:0]; //时间相加
+            NSDateComponents *dateComponents = [calendar components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond fromDate:nextDate];
+            UNCalendarNotificationTrigger *trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:dateComponents repeats:YES];
         }
         else
         {
-             NSDate *nsIntervalDate = [dateFormatter dateFromString:interval];//间隔时间为日期时
-             if(nsIntervalDate.year>0)
-             {
-                oneTime.year=nsIntervalDate.year;
-             }
-             if(nsIntervalDate.month>0)
-             {
-                oneTime.month=nsIntervalDate.month;
-             }
-             if(nsIntervalDate.day>0)
-             {
-                oneTime.day=nsIntervalDate.day;
-             }
-             if(nsIntervalDate.hour>0)
-             {
-                oneTime.hour=nsIntervalDate.hour;
-             }
-             if(nsIntervalDate.minute>0)
-             {
-                oneTime.minute=nsIntervalDate.minute;
-             }
-             if(nsIntervalDate.second>0)
-             {
-                oneTime.second=nsIntervalDate.second;
-             }
+            NSDate *nsIntervalDate = [dateFormatter dateFromString:interval];//间隔时间为日期时
+            NSDateComponents *oneTime = [calendar components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond     fromDate:nsIntervalDate];
+            UNCalendarNotificationTrigger *trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:oneTime repeats:YES];
         }
+ 
     } 
     UNCalendarNotificationTrigger *trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:oneTime repeats:YES];
     //设置通知请求
@@ -495,7 +475,8 @@
     //将通知添加到UNUserNotificationCenter中
 
 
-    Boolean *bResult=true;
+    Boolean  initResult=true;
+    Boolean *bResult=&initResult;
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
     [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
         if (error) {
@@ -551,7 +532,8 @@
     UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
 
     //将通知添加到UNUserNotificationCenter中
-    Boolean *bResult=true;
+    Boolean  initResult=true;
+    Boolean *bResult=&initResult;
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
     [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
          if (error) {
@@ -594,7 +576,7 @@
             for (int i = 0; i < dataLength; ++i) {
               [hexTokenString appendFormat:@"%02x", dataBuffer[i]];
             }
-            strToken=[NSString stringWithFormat:@"%@", hexTokenString];;
+            strToken=[NSString stringWithFormat:@"%@", hexTokenString];
     }
     else
     {
