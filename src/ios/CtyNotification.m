@@ -6,7 +6,7 @@
 @interface CtyNotification : CDVPlugin{
     CDVPluginResult* pluginResult;
 }
-     -(void) commonNotice:(CDVInvokedUrlCommand*)command;
+     -(void) commonNotification:(CDVInvokedUrlCommand*)command;
      -(void) timedNotice:(CDVInvokedUrlCommand*)command;
      -(void) userNotificationCenter:(UNUserNotificationCenter *)center didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void (^)(void))completionHandler;
      -(void) userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler;
@@ -19,7 +19,7 @@
 
 @implementation CtyNotification
 //普通通知
-- (void)commonNotice:(CDVInvokedUrlCommand*)command {
+- (void)commonNotification:(CDVInvokedUrlCommand*)command {
     
     NSArray* arguments = command.arguments;
     NSString* notificationId = [arguments objectAtIndex:0];
