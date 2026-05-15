@@ -68,6 +68,24 @@
                                                object:nil];
 }
 
+// JS action wrappers (match names from CtyNotificationConstants.js)
+- (void)bigImageNotification:(CDVInvokedUrlCommand*)command {
+    [self bigImageNotice:command];
+}
+
+- (void)largeTextNotification:(CDVInvokedUrlCommand*)command {
+    [self largeTextNotice:command];
+}
+
+- (void)importantNotification:(CDVInvokedUrlCommand*)command {
+    [self importantNotice:command];
+}
+
+- (void)timedNotication:(CDVInvokedUrlCommand*)command {
+    // Note: JS constant spelled 'timedNotication' (typo); delegate to timedNotice
+    [self timedNotice:command];
+}
+
 // Swizzled implementations — these will run in AppDelegate's context after exchange
 - (void)my_application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
     NSLog(@"CtyNotification: swizzled AppDelegate didRegisterForRemoteNotificationsWithDeviceToken called, posting CDVRemoteNotification");
@@ -191,35 +209,57 @@
         content.body=message;
         content.sound=[UNNotificationSound defaultSound];
 
-        //如果有大图，尝试添加附件
-        if (urlBigImage && urlBigImage.length > 0) {
-            NSURL *imageURL=[NSURL URLWithString:urlBigImage];
-            NSData *imageData=[NSData dataWithContentsOfURL:imageURL];
+        // 异步下载图片并在主线程调度通知（避免阻塞 UI）
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            NSURL *imageURL = (urlBigImage && urlBigImage.length>0) ? [NSURL URLWithString:urlBigImage] : nil;
+            NSData *imageData = nil;
+            if (imageURL) {
+                imageData = [NSData dataWithContentsOfURL:imageURL];
+            }
+
+            NSString *temporaryDirectory = NSTemporaryDirectory();
+            NSString *imagePath = nil;
+            UNNotificationAttachment *attachment = nil;
+
             if (imageData) {
-                NSString *temporaryDirectory = NSTemporaryDirectory();
-                NSString *imagePath = [temporaryDirectory stringByAppendingPathComponent:@"image.jpg"];
-                [imageData writeToFile:imagePath atomically:YES];
-                UNNotificationAttachment *attachment = [UNNotificationAttachment attachmentWithIdentifier:@"imageAttachment" URL:[NSURL fileURLWithPath:imagePath] options:nil error:nil];
+                NSString *ext = imageURL.pathExtension;
+                if (!ext || ext.length == 0) {
+                    ext = @"jpg";
+                }
+                imagePath = [temporaryDirectory stringByAppendingPathComponent:[NSString stringWithFormat:@"cty_image_%@.%@", [[NSUUID UUID] UUIDString], ext]];
+                BOOL ok = [imageData writeToFile:imagePath atomically:YES];
+                if (ok) {
+                    NSError *attErr = nil;
+                    attachment = [UNNotificationAttachment attachmentWithIdentifier:@"imageAttachment" URL:[NSURL fileURLWithPath:imagePath] options:nil error:&attErr];
+                    if (attErr) {
+                        NSLog(@"CtyNotification: attachment error=%@", attErr);
+                        attachment = nil;
+                    }
+                }
+            } else if (imageURL) {
+                NSLog(@"CtyNotification: failed to download image for URL=%@", urlBigImage);
+            }
+
+            dispatch_async(dispatch_get_main_queue(), ^{
                 if (attachment) {
                     content.attachments = @[attachment];
                 }
-            }
-        }
+                //简单延迟触发
+                UNTimeIntervalNotificationTrigger *trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:1.0 repeats:NO];
+                NSString* identifier = [NSUUID UUID].UUIDString;
+                UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
 
-        //简单延迟触发
-        UNTimeIntervalNotificationTrigger *trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:1.0 repeats:NO];
-        NSString* identifier = [NSUUID UUID].UUIDString;
-        UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
-
-        UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
-        [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
-            if (error) {
-                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[NSString stringWithFormat:@"error: %@", error.description]];
-            } else {
-                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"success"];
-            }
-            [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-        }];
+                UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+                [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+                    if (error) {
+                        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[NSString stringWithFormat:@"error: %@", error.description]];
+                    } else {
+                        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"success"];
+                    }
+                    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+                }];
+            });
+        });
     }];
 }
 
@@ -380,38 +420,56 @@
         //设置从通知激活App时的lanunchImage图片
         //content.lauchImageName = @"lanunchImage";
        
-        NSURL *imageURL=[NSURL URLWithString:urlBigImage];
-        
-        NSData *imageData=[NSData dataWithContentsOfURL:imageURL];
-        
-        // Save the downloaded image to a temporary file
-        NSString *temporaryDirectory = NSTemporaryDirectory();
-        NSString *imagePath = [temporaryDirectory stringByAppendingPathComponent:@"image.jpg"];
-        [imageData writeToFile:imagePath atomically:YES];
-        
-        // Create a UNNotificationAttachment with the temporary image file
-        UNNotificationAttachment *attachment = [UNNotificationAttachment attachmentWithIdentifier:@"imageAttachment" URL:[NSURL fileURLWithPath:imagePath] options:nil error:nil];
-        if (attachment) {
-            // Attach the image to the notification content
-            content.attachments = @[attachment];
-        }
-        //通知触发时间
-        UNTimeIntervalNotificationTrigger *trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:1.0 repeats:NO];
-        
-        NSString* identifier = [NSUUID UUID].UUIDString;
-
-        UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
-        
-        //将通知添加到UNUserNotificationCenter中
-        UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
-        [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
-            if (error) {
-                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[NSString stringWithFormat:@"error: %@", error.description]];
-            } else {
-                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"success"];
+        // 异步下载图片并在完成后调度通知
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            NSURL *imageURL=[NSURL URLWithString:urlBigImage];
+            NSData *imageData = nil;
+            if (imageURL) {
+                imageData = [NSData dataWithContentsOfURL:imageURL];
             }
-            [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-        }];
+
+            NSString *temporaryDirectory = NSTemporaryDirectory();
+            NSString *imagePath = nil;
+            UNNotificationAttachment *attachment = nil;
+
+            if (imageData) {
+                NSString *ext = imageURL.pathExtension;
+                if (!ext || ext.length == 0) {
+                    ext = @"jpg";
+                }
+                imagePath = [temporaryDirectory stringByAppendingPathComponent:[NSString stringWithFormat:@"cty_image_%@.%@", [[NSUUID UUID] UUIDString], ext]];
+                BOOL ok = [imageData writeToFile:imagePath atomically:YES];
+                if (ok) {
+                    NSError *attErr = nil;
+                    attachment = [UNNotificationAttachment attachmentWithIdentifier:@"imageAttachment" URL:[NSURL fileURLWithPath:imagePath] options:nil error:&attErr];
+                    if (attErr) {
+                        NSLog(@"CtyNotification: attachment error=%@", attErr);
+                        attachment = nil;
+                    }
+                }
+            } else {
+                NSLog(@"CtyNotification: failed to download image for URL=%@", urlBigImage);
+            }
+
+            // 在主线程创建并添加通知请求
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (attachment) {
+                    content.attachments = @[attachment];
+                }
+                UNTimeIntervalNotificationTrigger *trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:1.0 repeats:NO];
+                NSString* identifier = [NSUUID UUID].UUIDString;
+                UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
+                UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+                [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+                    if (error) {
+                        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[NSString stringWithFormat:@"error: %@", error.description]];
+                    } else {
+                        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"success"];
+                    }
+                    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+                }];
+            });
+        });
     }];
 }
 
@@ -480,69 +538,89 @@
 
         BOOL repeats = [strRepeat boolValue];
         
-        NSURL *imageURL=[NSURL URLWithString:urlBigImage];
-        
-        NSData *imageData=[NSData dataWithContentsOfURL:imageURL];
-        
-        // Save the downloaded image to a temporary file
-        NSString *temporaryDirectory = NSTemporaryDirectory();
-        NSString *imagePath = [temporaryDirectory stringByAppendingPathComponent:@"image.jpg"];
-        [imageData writeToFile:imagePath atomically:YES];
-        
-        // Create a UNNotificationAttachment with the temporary image file
-        UNNotificationAttachment *attachment = [UNNotificationAttachment attachmentWithIdentifier:@"imageAttachment" URL:[NSURL fileURLWithPath:imagePath] options:nil error:nil];
-        if (attachment) {
-            // Attach the image to the notification content
-            content.attachments = @[attachment];
-        }
+        // 不在此同步下载图片，改为异步下载以避免无效附件 URL
+        NSURL *imageURL = (urlBigImage && urlBigImage.length>0) ? [NSURL URLWithString:urlBigImage] : nil;
+
         //周期日历触发器   //设置通知触发时间  //设置通知触发时间  
 
-        UNCalendarNotificationTrigger *trigger;
-        
+        UNNotificationTrigger *trigger;
+
         if(repeats)
         {
-            NSLog(@"CtyNotification: scheduling repeating calendar trigger, interval=%@ repeats=%d", interval, repeats);
+            NSLog(@"CtyNotification: scheduling repeating trigger, interval=%@ repeats=%d", interval, repeats);
             int intValue=[interval intValue];
-            //判断是否是Int值
-            if(intValue!=0||[interval isEqualToString:@"0"])
-            {
-                NSDateComponents *oneTime = [[NSDateComponents alloc] init];
-                oneTime.second=intValue;
-                NSDate *nextDate = [calendar dateByAddingComponents:oneTime toDate:[calendar dateFromComponents:dateComponents] options:0]; //时间相加
-                NSDateComponents *nextDateComponents = [calendar components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond fromDate:nextDate];
-                trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:nextDateComponents repeats:YES];
-            }
-            else
-            {
+            // 如果 interval 为数字（秒）
+            if(intValue!=0 || [interval isEqualToString:@"0"]) {
+                if (intValue >= 60) {
+                    // iOS 要求重复的 time interval >= 60 秒
+                    trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:(NSTimeInterval)intValue repeats:YES];
+                } else {
+                    // 无法使用重复的 timeInterval < 60s，退回到单次触发（并记录）
+                    NSLog(@"CtyNotification: repeating timeInterval < 60s not supported by iOS, scheduling single occurrence");
+                    trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:(NSTimeInterval)intValue repeats:NO];
+                }
+            } else {
+                // interval 是日期字符串，使用日历组件重复（例如每天/每月的固定时间）
                 NSDate *nsIntervalDate = [dateFormatter dateFromString:interval];//间隔时间为日期时
-                NSDateComponents *oneTime = [calendar components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond     fromDate:nsIntervalDate];
+                NSDateComponents *oneTime = [calendar components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond fromDate:nsIntervalDate];
                 trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:oneTime repeats:YES];
             }
         } else {
             NSLog(@"CtyNotification: scheduling single calendar trigger at %@", strDate);
             trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:dateComponents repeats:NO];
         }
-        //设置通知请求
-        //如果使用相同的[requestWithIdentifier]会一直覆盖之前的旧通知
-        NSString* identifier = [[NSUUID UUID] UUIDString];
-        UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
-
-        //将通知添加到UNUserNotificationCenter中
-        UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
-        [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
-            if (error) {
-                NSLog(@"CtyNotification: addNotificationRequest error=%@", error);
-                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[NSString stringWithFormat:@"error: %@", error.description]];
-            } else {
-                NSLog(@"CtyNotification: addNotificationRequest success identifier=%@", identifier);
-                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"success"];
+        // 异步下载图片并在主线程创建并添加通知请求
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            UNNotificationAttachment *attachment = nil;
+            if (imageURL) {
+                NSData *imageData = [NSData dataWithContentsOfURL:imageURL];
+                if (imageData) {
+                    NSString *ext = imageURL.pathExtension;
+                    if (!ext || ext.length == 0) ext = @"jpg";
+                    NSString *temporaryDirectory = NSTemporaryDirectory();
+                    NSString *imagePath = [temporaryDirectory stringByAppendingPathComponent:[NSString stringWithFormat:@"cty_image_%@.%@", [[NSUUID UUID] UUIDString], ext]];
+                    BOOL ok = [imageData writeToFile:imagePath atomically:YES];
+                    if (ok) {
+                        NSError *attErr = nil;
+                        attachment = [UNNotificationAttachment attachmentWithIdentifier:@"imageAttachment" URL:[NSURL fileURLWithPath:imagePath] options:nil error:&attErr];
+                        if (attErr) {
+                            NSLog(@"CtyNotification: attachment error=%@", attErr);
+                            attachment = nil;
+                        }
+                    }
+                } else {
+                    NSLog(@"CtyNotification: failed to download image for URL=%@", urlBigImage);
+                }
             }
-            [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-        }];
-        //当有重复任务时调用
-        if(repeats){
-            [self timedNoticeRepeat:command];
-        }
+
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (attachment) {
+                    content.attachments = @[attachment];
+                }
+                //设置通知请求
+                //如果使用相同的[requestWithIdentifier]会一直覆盖之前的旧通知
+                NSString* identifier = [[NSUUID UUID] UUIDString];
+                UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
+
+                //将通知添加到UNUserNotificationCenter中
+                UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+                [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+                    if (error) {
+                        NSLog(@"CtyNotification: addNotificationRequest error=%@", error);
+                        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[NSString stringWithFormat:@"error: %@", error.description]];
+                    } else {
+                        NSLog(@"CtyNotification: addNotificationRequest success identifier=%@", identifier);
+                        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"success"];
+                    }
+                    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+                }];
+
+                //当有重复任务时调用
+                if(repeats){
+                    [self timedNoticeRepeat:command];
+                }
+            });
+        });
     }];
 }
 
@@ -592,41 +670,71 @@
         NSCalendar *calendar = [NSCalendar currentCalendar];
         NSDateComponents *dateComponents = [calendar components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond fromDate:nsDate];
 
-        NSURL *imageURL=[NSURL URLWithString:urlBigImage];
-        
-        NSData *imageData=[NSData dataWithContentsOfURL:imageURL];
-        
-        // Save the downloaded image to a temporary file
-        NSString *temporaryDirectory = NSTemporaryDirectory();
-        NSString *imagePath = [temporaryDirectory stringByAppendingPathComponent:@"image.jpg"];
-        [imageData writeToFile:imagePath atomically:YES];
-        
-        // Create a UNNotificationAttachment with the temporary image file
-        UNNotificationAttachment *attachment = [UNNotificationAttachment attachmentWithIdentifier:@"imageAttachment" URL:[NSURL fileURLWithPath:imagePath] options:nil error:nil];
-        if (attachment) {
-            // Attach the image to the notification content
-            content.attachments = @[attachment];
-        } 
-        
+        NSURL *imageURL = (urlBigImage && urlBigImage.length>0) ? [NSURL URLWithString:urlBigImage] : nil;
+
         //Create trigger with interval
         int intValue=[interval intValue];
-        UNCalendarNotificationTrigger *trigger;
-        
+        UNNotificationTrigger *trigger;
+
         //判断是否是Int值
-        if(intValue!=0||[interval isEqualToString:@"0"])
-        {
-            NSDateComponents *oneTime = [[NSDateComponents alloc] init];
-            oneTime.second=intValue;
-            NSDate *nextDate = [calendar dateByAddingComponents:oneTime toDate:[calendar dateFromComponents:dateComponents] options:0]; //时间相加
-            NSDateComponents *nextDateComponents = [calendar components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond fromDate:nextDate];
-            trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:nextDateComponents repeats:YES];
-        }
-        else
-        {
+        if(intValue!=0||[interval isEqualToString:@"0"]) {
+            if (intValue >= 60) {
+                trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:(NSTimeInterval)intValue repeats:YES];
+            } else {
+                NSLog(@"CtyNotification: repeating timeInterval < 60s not supported by iOS, scheduling single occurrence");
+                trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:(NSTimeInterval)intValue repeats:NO];
+            }
+        } else {
             NSDate *nsIntervalDate = [dateFormatter dateFromString:interval];//间隔时间为日期时
             NSDateComponents *oneTime = [calendar components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond fromDate:nsIntervalDate];
             trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:oneTime repeats:YES];
         }
+
+        // 异步下载图片并在主线程创建并添加通知请求
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            UNNotificationAttachment *attachment = nil;
+            if (imageURL) {
+                NSData *imageData = [NSData dataWithContentsOfURL:imageURL];
+                if (imageData) {
+                    NSString *ext = imageURL.pathExtension;
+                    if (!ext || ext.length == 0) ext = @"jpg";
+                    NSString *temporaryDirectory = NSTemporaryDirectory();
+                    NSString *imagePath = [temporaryDirectory stringByAppendingPathComponent:[NSString stringWithFormat:@"cty_image_%@.%@", [[NSUUID UUID] UUIDString], ext]];
+                    BOOL ok = [imageData writeToFile:imagePath atomically:YES];
+                    if (ok) {
+                        NSError *attErr = nil;
+                        attachment = [UNNotificationAttachment attachmentWithIdentifier:@"imageAttachment" URL:[NSURL fileURLWithPath:imagePath] options:nil error:&attErr];
+                        if (attErr) {
+                            NSLog(@"CtyNotification: attachment error=%@", attErr);
+                            attachment = nil;
+                        }
+                    }
+                } else {
+                    NSLog(@"CtyNotification: failed to download image for URL=%@", urlBigImage);
+                }
+            }
+
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (attachment) {
+                    content.attachments = @[attachment];
+                }
+                //设置通知请求
+                //如果使用相同的[requestWithIdentifier]会一直覆盖之前的旧通知
+                NSString* identifier = [[NSUUID UUID] UUIDString];
+                UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
+
+                //将通知添加到UNUserNotificationCenter中
+                UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+                [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+                    if (error) {
+                        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[NSString stringWithFormat:@"error: %@", error.description]];
+                    } else {
+                        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"success"];
+                    }
+                    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+                }];
+            });
+        });
         
         //设置通知请求
         //如果使用相同的[requestWithIdentifier]会一直覆盖之前的旧通知
