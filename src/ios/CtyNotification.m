@@ -130,7 +130,7 @@
 }
 
 //请求通知权限
--(void) requestNotificationPermission:(void(^)(BOOL granted))completionHandler {
+- (void) requestNotificationPermission:(void(^)(BOOL granted))completionHandler {
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
     NSLog(@"CtyNotification: requestNotificationPermission start");
     //检查当前权限状态
@@ -145,7 +145,6 @@
                     //权限获取成功，在主线程更新 UI
                     dispatch_async(dispatch_get_main_queue(), ^{
                         NSLog(@"CtyNotification: registering for remote notifications (after permission)");
-                    Boolean initRepeats = [strRepeat boolValue];
                     });
                 }
                 completionHandler(granted);
@@ -165,7 +164,6 @@
 
 //普通通知
 - (void)commonNotification:(CDVInvokedUrlCommand*)command {
-    
     NSArray* arguments = command.arguments;
     NSString* notificationId = [arguments objectAtIndex:0];
     NSString* title = [arguments objectAtIndex:1];
@@ -177,40 +175,42 @@
     NSString* strRepeat = [arguments objectAtIndex:7];
     NSString* interval =[arguments objectAtIndex:8]; //通知间隔时间
     NSString* strType = [arguments objectAtIndex:9];
-    
-                            trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:nextDateComponents repeats:NO];
+
     [self requestNotificationPermission:^(BOOL granted) {
         if (!granted) {
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"通知权限被拒绝，请在设置中启用通知权限"];
             [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
             return;
-                            trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:oneTime repeats:NO];
-        
+        }
+
         //通知内容
         UNMutableNotificationContent *content = [[UNMutableNotificationContent alloc] init];
-        //设置通知请求发送时APP图标上显示的数字
         content.badge=@0;
-        //通知标题
         content.title=title;
-        //通知副标题
         content.subtitle=subtitle;
-        //通知内容
         content.body=message;
-        //通知声音
         content.sound=[UNNotificationSound defaultSound];
-        //设置从通知激活App时的lanunchImage图片
-        //content.lauchImageName = @"lanunchImage";
 
-        //通知触发时间
+        //如果有大图，尝试添加附件
+        if (urlBigImage && urlBigImage.length > 0) {
+            NSURL *imageURL=[NSURL URLWithString:urlBigImage];
+            NSData *imageData=[NSData dataWithContentsOfURL:imageURL];
+            if (imageData) {
+                NSString *temporaryDirectory = NSTemporaryDirectory();
+                NSString *imagePath = [temporaryDirectory stringByAppendingPathComponent:@"image.jpg"];
+                [imageData writeToFile:imagePath atomically:YES];
+                UNNotificationAttachment *attachment = [UNNotificationAttachment attachmentWithIdentifier:@"imageAttachment" URL:[NSURL fileURLWithPath:imagePath] options:nil error:nil];
+                if (attachment) {
+                    content.attachments = @[attachment];
+                }
+            }
+        }
+
+        //简单延迟触发
         UNTimeIntervalNotificationTrigger *trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:1.0 repeats:NO];
-
-        //设置通知请求
-        //如果使用相同的[requestWithIdentifier]会一直覆盖之前的旧通知
         NSString* identifier = [NSUUID UUID].UUIDString;
-
         UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
 
-        //将通知添加到UNUserNotificationCenter中
         UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
         [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
             if (error) {
@@ -478,8 +478,7 @@
         NSCalendar *calendar = [NSCalendar currentCalendar];
         NSDateComponents *dateComponents = [calendar components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond fromDate:nsDate];
 
-        Boolean initRepeats=[strRepeat boolValue];
-        Boolean* repeats =&initRepeats;
+        BOOL repeats = [strRepeat boolValue];
         
         NSURL *imageURL=[NSURL URLWithString:urlBigImage];
         
@@ -500,9 +499,9 @@
 
         UNCalendarNotificationTrigger *trigger;
         
-        if(*repeats)
+        if(repeats)
         {
-            NSLog(@"CtyNotification: scheduling repeating calendar trigger, interval=%@ repeats=%d", interval, *repeats);
+            NSLog(@"CtyNotification: scheduling repeating calendar trigger, interval=%@ repeats=%d", interval, repeats);
             int intValue=[interval intValue];
             //判断是否是Int值
             if(intValue!=0||[interval isEqualToString:@"0"])
@@ -521,9 +520,6 @@
             }
         } else {
             NSLog(@"CtyNotification: scheduling single calendar trigger at %@", strDate);
-        }
-        else
-        {
             trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:dateComponents repeats:NO];
         }
         //设置通知请求
@@ -544,8 +540,8 @@
             [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
         }];
         //当有重复任务时调用
-        if(*repeats){
-        [self timedNoticeRepeat:command];
+        if(repeats){
+            [self timedNoticeRepeat:command];
         }
     }];
 }
