@@ -83,7 +83,9 @@ CTYNotificationExport.sendLocalNotification = function(successCallback, errorCal
         let date = new Date(+new Date() + delay*1000);
         delay = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
     }
-    if(+interval){
+    // If interval is numeric and this is a repeating notification, keep it as seconds.
+    // Only convert interval to a date string when it's a one-off (non-repeating) scheduled time.
+    if (+interval && !repeat) {
         let date = new Date(+new Date() + interval*1000);
         interval = `${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
     }

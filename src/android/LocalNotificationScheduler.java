@@ -1,12 +1,17 @@
 package cty.cordova.plugin.CtyNotification;
 
+import android.Manifest;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.icu.text.SimpleDateFormat;
+import android.net.Uri;
+import android.provider.Settings;
 import android.os.Build;
+import android.util.Log;
 
 import java.text.ParseException;
 import java.util.Calendar;
@@ -20,11 +25,14 @@ import java.util.concurrent.TimeUnit;
 public class LocalNotificationScheduler {
     //定时通知
     public static void scheduleLocalNotification(Context context,int requestCode,String title,String subText, String message,String urlLargeIcon,String urlBigImage,String strType,String strDate,String interval,boolean repeat) throws ParseException {
+        Log.d("CtyNotification", "scheduleLocalNotification called requestCode=" + requestCode + " title=" + title + " strDate=" + strDate + " interval=" + interval + " repeat=" + repeat);
         // 获取AlarmManager系统服务
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
 
         // 创建一个Intent，用于触发本地推送
         Intent notificationIntent = new Intent(context, NotificationReceiver.class);
+        // include notificationId for receiver
+        notificationIntent.putExtra("notificationId", requestCode);
         notificationIntent.putExtra("title",title);
         notificationIntent.putExtra("subText",subText);
         notificationIntent.putExtra("message",message);
@@ -44,17 +52,44 @@ public class LocalNotificationScheduler {
             date= sdf.parse(strDate);
         }
         if(repeat) {
+            Log.d("CtyNotification", "scheduleLocalNotification: repeat branch, interval=" + interval);
             Calendar calendar = Calendar.getInstance();
             if(date!=null)
             {
                 calendar.setTime(date);
                 if(interval.indexOf("-")>0)
                 {
-                    alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(),0,pendingIntent);
+                    // interval expressed as complex components (month-day-hour-minute-second)
+                    // schedule a single exact alarm and let the receiver reschedule the next occurrence
+                    long triggerAt = calendar.getTimeInMillis();
+                    // If app cannot schedule exact alarms (Android 12+), request user to grant and fallback to inexact set
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+                        Log.w("CtyNotification", "Cannot schedule exact alarms; requesting user grant and falling back to inexact alarm");
+                        try {
+                            Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                            intent.setData(Uri.fromParts("package", context.getPackageName(), null));
+                            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            context.startActivity(intent);
+                        } catch (Exception e) {
+                            Log.e("CtyNotification", "Failed to start exact alarm settings activity", e);
+                        }
+                        // fallback to inexact alarm to avoid exception
+                        alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent);
+                    } else {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent);
+                        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                            alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent);
+                        } else {
+                            alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent);
+                        }
+                    }
                 }
                 else
                 {
-                    alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), Integer.parseInt(interval)*1000,pendingIntent);
+                    long intervalMillis = Integer.parseInt(interval) * 1000L;
+                    Log.d("CtyNotification", "scheduleLocalNotification: numeric intervalMillis=" + intervalMillis);
+                    alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), intervalMillis, pendingIntent);
                 }
             }
         }
@@ -83,28 +118,43 @@ public class LocalNotificationScheduler {
         @Override
         public void onReceive(Context context, Intent intent) {
             int notificationId =intent.getIntExtra("notificationId",0);
+            Log.d("CtyNotification", "NotificationReceiver onReceive: id=" + notificationId + " extras=" + intent.getExtras());
+            
+            // Check POST_NOTIFICATIONS permission
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                    Log.w("CtyNotification", "NotificationReceiver: POST_NOTIFICATIONS permission not granted, aborting notification display");
+                    return;
+                }
+            }
+            Log.d("CtyNotification", "NotificationReceiver: permission check passed");
+            
             String title=intent.getStringExtra("title");
             String subText=intent.getStringExtra("subText");
             String message=intent.getStringExtra("message");
             String urlLargeIcon=intent.getStringExtra("urlLargeIcon");
             String urlBigImage=intent.getStringExtra("urlBigImage");
             String strType=intent.getStringExtra("strType");
+            if (strType == null || strType.isEmpty()) {
+                Log.d("CtyNotification", "NotificationReceiver: missing strType, aborting processing. extras=" + intent.getExtras());
+                return;
+            }
             String interval=intent.getStringExtra("interval");
             String strDate=intent.getStringExtra("strDate");
-            String repeat=intent.getStringExtra("repeat");
-            boolean strRepeat =Boolean.parseBoolean(repeat); //是否重复推送
+            boolean strRepeat = intent.getBooleanExtra("repeat", false); //是否重复推送
             switch (strType)
             {
-                case "commonNotice":
+                // Match the NotificationType strings emitted by the JS layer (e.g. 'commonNotification')
+                case "commonNotification":
                     CtyNotificationHelper.CommonNotification(context, notificationId,title,subText, message);
                     break;
-                case "largeTextNotice":
+                case "largeTextNotification":
                     CtyNotificationHelper.LargeTextNotification(context, notificationId,title,subText, message);
                     break;
-                case "importantNotice":
+                case "importantNotification":
                     CtyNotificationHelper.ImportantNotification(context, notificationId,title,subText, message);
                     break;
-                case "bigImageNotice":
+                case "bigImageNotification":
                     execute(new LoadImageTask(context, notificationId,title,subText,message,urlLargeIcon,urlBigImage));
                     break;
                 default:
@@ -112,6 +162,7 @@ public class LocalNotificationScheduler {
             }
             if(interval.indexOf("-")>0)
             {
+                Log.d("CtyNotification", "NotificationReceiver: complex interval, will compute next date and reschedule. interval=" + interval + " strDate=" + strDate);
                 SimpleDateFormat sdf = null;
                 Date date=null;
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {

@@ -2,6 +2,7 @@
 #import <Foundation/Foundation.h>
 #import <CommonCrypto/CommonCrypto.h>
 #import <UserNotifications/UserNotifications.h>
+#import <objc/runtime.h>
 
 @interface CtyNotification : CDVPlugin{
     CDVPluginResult* pluginResult;
@@ -25,6 +26,36 @@
 - (void)pluginInitialize {
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
     center.delegate = self;
+    NSLog(@"CtyNotification: pluginInitialize start, setting up APNs forwarding and observers");
+    // Try to swizzle AppDelegate methods to ensure APNs callbacks are forwarded as notifications
+    Class appDelegateClass = [UIApplication sharedApplication].delegate.class;
+    if (appDelegateClass) {
+        // didRegisterForRemoteNotificationsWithDeviceToken:
+        SEL originalRegSel = @selector(application:didRegisterForRemoteNotificationsWithDeviceToken:);
+        SEL swizzledRegSel = @selector(my_application:didRegisterForRemoteNotificationsWithDeviceToken:);
+        Method originalReg = class_getInstanceMethod(appDelegateClass, originalRegSel);
+        Method swizzledReg = class_getInstanceMethod([self class], swizzledRegSel);
+        if (originalReg && swizzledReg) {
+            method_exchangeImplementations(originalReg, swizzledReg);
+            NSLog(@"CtyNotification: swizzled didRegisterForRemoteNotificationsWithDeviceToken on %@", NSStringFromClass(appDelegateClass));
+        } else {
+            NSLog(@"CtyNotification: could not swizzle didRegisterForRemoteNotificationsWithDeviceToken");
+        }
+
+        // didFailToRegisterForRemoteNotificationsWithError:
+        SEL originalFailSel = @selector(application:didFailToRegisterForRemoteNotificationsWithError:);
+        SEL swizzledFailSel = @selector(my_application:didFailToRegisterForRemoteNotificationsWithError:);
+        Method originalFail = class_getInstanceMethod(appDelegateClass, originalFailSel);
+        Method swizzledFail = class_getInstanceMethod([self class], swizzledFailSel);
+        if (originalFail && swizzledFail) {
+            method_exchangeImplementations(originalFail, swizzledFail);
+            NSLog(@"CtyNotification: swizzled didFailToRegisterForRemoteNotificationsWithError on %@", NSStringFromClass(appDelegateClass));
+        } else {
+            NSLog(@"CtyNotification: could not swizzle didFailToRegisterForRemoteNotificationsWithError");
+        }
+    } else {
+        NSLog(@"CtyNotification: no AppDelegate class found to swizzle");
+    }
     // 监听 Cordova AppDelegate 注册远程通知成功时发出的通知
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(onDidRegisterForRemoteNotifications:)
@@ -37,10 +68,32 @@
                                                object:nil];
 }
 
+// Swizzled implementations — these will run in AppDelegate's context after exchange
+- (void)my_application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
+    NSLog(@"CtyNotification: swizzled AppDelegate didRegisterForRemoteNotificationsWithDeviceToken called, posting CDVRemoteNotification");
+    // Call original implementation (after method swizzle this calls original)
+    if ([UIApplication sharedApplication].delegate && [[UIApplication sharedApplication].delegate respondsToSelector:@selector(my_application:didRegisterForRemoteNotificationsWithDeviceToken:)]) {
+        // call the original implementation (which is now named my_application:... due to swizzle)
+        [[UIApplication sharedApplication].delegate performSelector:@selector(my_application:didRegisterForRemoteNotificationsWithDeviceToken:) withObject:application withObject:deviceToken];
+    }
+    // Post notification so plugin can receive it
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"CDVRemoteNotification" object:deviceToken];
+}
+
+- (void)my_application:(UIApplication *)application didFailToRegisterForRemoteNotificationsWithError:(NSError *)error {
+    NSLog(@"CtyNotification: swizzled AppDelegate didFailToRegisterForRemoteNotificationsWithError called, posting CDVRemoteNotificationError: %@", error);
+    if ([UIApplication sharedApplication].delegate && [[UIApplication sharedApplication].delegate respondsToSelector:@selector(my_application:didFailToRegisterForRemoteNotificationsWithError:)]) {
+        [[UIApplication sharedApplication].delegate performSelector:@selector(my_application:didFailToRegisterForRemoteNotificationsWithError:) withObject:application withObject:error];
+    }
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"CDVRemoteNotificationError" object:error];
+}
+
 - (void)onDidRegisterForRemoteNotifications:(NSNotification *)notification {
+    NSLog(@"CtyNotification: onDidRegisterForRemoteNotifications called");
     _deviceToken = (NSData *)notification.object;
     if (_pendingTokenCallbackId) {
         NSString *hexToken = [self hexStringFromDeviceToken:_deviceToken];
+        NSLog(@"CtyNotification: device token received, sending to callback %@ token=%@", _pendingTokenCallbackId, hexToken);
         CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:hexToken];
         [self.commandDelegate sendPluginResult:result callbackId:_pendingTokenCallbackId];
         _pendingTokenCallbackId = nil;
@@ -48,8 +101,10 @@
 }
 
 - (void)onDidFailToRegisterForRemoteNotifications:(NSNotification *)notification {
+    NSLog(@"CtyNotification: onDidFailToRegisterForRemoteNotifications called");
     if (_pendingTokenCallbackId) {
         NSError *error = (NSError *)notification.object;
+        NSLog(@"CtyNotification: registration failed, error=%@, callback=%@", error, _pendingTokenCallbackId);
         CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
                                                    messageAsString:error.localizedDescription ?: @"注册远程通知失败"];
         [self.commandDelegate sendPluginResult:result callbackId:_pendingTokenCallbackId];
@@ -77,17 +132,20 @@
 //请求通知权限
 -(void) requestNotificationPermission:(void(^)(BOOL granted))completionHandler {
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
-    
+    NSLog(@"CtyNotification: requestNotificationPermission start");
     //检查当前权限状态
     [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings * _Nonnull settings) {
+        NSLog(@"CtyNotification: current notification settings: %ld", (long)settings.authorizationStatus);
         if (settings.authorizationStatus == UNAuthorizationStatusNotDetermined) {
             //权限未决定，申请权限
             [center requestAuthorizationWithOptions:(UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge) 
                                   completionHandler:^(BOOL granted, NSError * _Nullable error) {
+                NSLog(@"CtyNotification: requestAuthorization completion granted=%d error=%@", granted, error);
                 if (granted) {
                     //权限获取成功，在主线程更新 UI
                     dispatch_async(dispatch_get_main_queue(), ^{
-                        [[UIApplication sharedApplication] registerForRemoteNotifications];
+                        NSLog(@"CtyNotification: registering for remote notifications (after permission)");
+                    Boolean initRepeats = [strRepeat boolValue];
                     });
                 }
                 completionHandler(granted);
@@ -95,9 +153,11 @@
         } else if (settings.authorizationStatus == UNAuthorizationStatusAuthorized || 
                    settings.authorizationStatus == UNAuthorizationStatusProvisional) {
             //权限已授予
+            NSLog(@"CtyNotification: authorization already granted");
             completionHandler(YES);
         } else {
             //权限被拒绝
+            NSLog(@"CtyNotification: authorization denied");
             completionHandler(NO);
         }
     }];
@@ -118,13 +178,13 @@
     NSString* interval =[arguments objectAtIndex:8]; //通知间隔时间
     NSString* strType = [arguments objectAtIndex:9];
     
-    //请求通知权限
+                            trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:nextDateComponents repeats:NO];
     [self requestNotificationPermission:^(BOOL granted) {
         if (!granted) {
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"通知权限被拒绝，请在设置中启用通知权限"];
             [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
             return;
-        }
+                            trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:oneTime repeats:NO];
         
         //通知内容
         UNMutableNotificationContent *content = [[UNMutableNotificationContent alloc] init];
@@ -357,6 +417,14 @@
 
 //定时通知
 -(void)timedNotice:(CDVInvokedUrlCommand*)command {
+    NSLog(@"CtyNotification: timedNotice called args count=%lu", (unsigned long)[command.arguments count]);
+    
+    if ([command.arguments count] < 10) {
+        NSLog(@"CtyNotification: timedNotice insufficient args, expected 10 got %lu", (unsigned long)[command.arguments count]);
+        CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Missing required arguments for timed notification"];
+        [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
+        return;
+    }
     
     NSString* notificationId = [command.arguments objectAtIndex:0];
     NSString* title = [command.arguments objectAtIndex:1];
@@ -368,6 +436,15 @@
     NSString* strRepeat = [command.arguments objectAtIndex:7];
     NSString* interval =[command.arguments objectAtIndex:8]; //通知间隔时间
     NSString* strType = [command.arguments objectAtIndex:9];
+    
+    if (!strDate || [strDate isEqualToString:@""]) {
+        NSLog(@"CtyNotification: timedNotice strDate is nil or empty");
+        CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"strDate cannot be empty"];
+        [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
+        return;
+    }
+    
+    NSLog(@"CtyNotification: timedNotice validated: id=%@ title=%@ strDate=%@ interval=%@ repeat=%@ strType=%@", notificationId, title, strDate, interval, strRepeat, strType);
 
     //请求通知权限
     [self requestNotificationPermission:^(BOOL granted) {
@@ -425,6 +502,7 @@
         
         if(*repeats)
         {
+            NSLog(@"CtyNotification: scheduling repeating calendar trigger, interval=%@ repeats=%d", interval, *repeats);
             int intValue=[interval intValue];
             //判断是否是Int值
             if(intValue!=0||[interval isEqualToString:@"0"])
@@ -441,7 +519,9 @@
                 NSDateComponents *oneTime = [calendar components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond     fromDate:nsIntervalDate];
                 trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:oneTime repeats:YES];
             }
-        } 
+        } else {
+            NSLog(@"CtyNotification: scheduling single calendar trigger at %@", strDate);
+        }
         else
         {
             trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:dateComponents repeats:NO];
@@ -455,8 +535,10 @@
         UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
         [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
             if (error) {
+                NSLog(@"CtyNotification: addNotificationRequest error=%@", error);
                 pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[NSString stringWithFormat:@"error: %@", error.description]];
             } else {
+                NSLog(@"CtyNotification: addNotificationRequest success identifier=%@", identifier);
                 pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"success"];
             }
             [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
@@ -651,7 +733,18 @@
     }
 
     // 保存 callbackId，等待 APNs 异步返回 token
-    _pendingTokenCallbackId = command.callbackId;
+    NSString *callbackId = command.callbackId;
+    _pendingTokenCallbackId = callbackId;
+
+    // 设置超时回退：若在 15 秒内未收到 token，则返回错误并清理回调
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        if (_pendingTokenCallbackId && [_pendingTokenCallbackId isEqualToString:callbackId]) {
+            CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                                       messageAsString:@"获取 deviceToken 超时"];
+            [self.commandDelegate sendPluginResult:result callbackId:_pendingTokenCallbackId];
+            _pendingTokenCallbackId = nil;
+        }
+    });
 
     // 请求权限后注册远程通知
     [self requestNotificationPermission:^(BOOL granted) {
