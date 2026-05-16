@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 public class LocalNotificationScheduler {
     //定时通知
-    public static void scheduleLocalNotification(Context context,int requestCode,String title,String subText, String message,String urlLargeIcon,String urlBigImage,String strType,String strDate,String interval,boolean repeat) throws ParseException {
+    public static void scheduleLocalNotification(Context context,int requestCode,String title,String subText, String message,String urlLargeIcon,String urlBigImage,String strType,String strDate,String interval,boolean repeat,int total) throws ParseException {
         Log.d("CtyNotification", "scheduleLocalNotification called requestCode=" + requestCode + " title=" + title + " strDate=" + strDate + " interval=" + interval + " repeat=" + repeat);
         // 获取AlarmManager系统服务
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
@@ -96,8 +96,28 @@ public class LocalNotificationScheduler {
                         triggerAt += steps * intervalMillis;
                         Log.d("CtyNotification", "scheduleLocalNotification: adjusted triggerAt to next future occurrence=" + triggerAt);
                     }
-                    Log.d("CtyNotification", "scheduleLocalNotification: numeric intervalMillis=" + intervalMillis + " nextTrigger=" + triggerAt);
-                    alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, triggerAt, intervalMillis, pendingIntent);
+                    Log.d("CtyNotification", "scheduleLocalNotification: numeric intervalMillis=" + intervalMillis + " nextTrigger=" + triggerAt + " total=" + total);
+                    if (total > 0) {
+                        // Schedule individual one-shot alarms for each occurrence
+                        for (int i = 0; i < total; i++) {
+                            long fireAt = triggerAt + (long) i * intervalMillis;
+                            Intent fi = new Intent(context, NotificationReceiver.class);
+                            fi.putExtra("notificationId", requestCode + i);
+                            fi.putExtra("title", title); fi.putExtra("subText", subText);
+                            fi.putExtra("message", message); fi.putExtra("urlLargeIcon", urlLargeIcon);
+                            fi.putExtra("urlBigImage", urlBigImage); fi.putExtra("strType", strType);
+                            fi.putExtra("strDate", strDate); fi.putExtra("interval", interval);
+                            fi.putExtra("repeat", false);
+                            PendingIntent pi = PendingIntent.getBroadcast(context, requestCode + i, fi, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fireAt, pi);
+                            } else {
+                                alarmManager.setExact(AlarmManager.RTC_WAKEUP, fireAt, pi);
+                            }
+                        }
+                    } else {
+                        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, triggerAt, intervalMillis, pendingIntent);
+                    }
                 }
             }
         }
@@ -205,7 +225,7 @@ public class LocalNotificationScheduler {
                 }
 
                 try {
-                    LocalNotificationScheduler.scheduleLocalNotification(context,notificationId,title,subText,message,urlLargeIcon,urlBigImage,strType,strDate,interval,strRepeat);
+                    LocalNotificationScheduler.scheduleLocalNotification(context,notificationId,title,subText,message,urlLargeIcon,urlBigImage,strType,strDate,interval,strRepeat,0);
                 } catch (ParseException e) {
                     throw new RuntimeException(e);
                 }

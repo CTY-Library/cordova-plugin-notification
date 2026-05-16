@@ -36,10 +36,11 @@ CTYNotification.sendLocalNotification(
   {
     notificationId: 3001,
     title: '重复通知',
-    message: '这是一条会重复的通知（首次 6s 后，每隔 10s 重复一次）',
+    message: '这是一条会重复的通知（首次 6s 后，每隔 10s 重复一次, 共重复 5 次）',
     delay: 6,
     repeat: true,
     interval: 10,
+    total: 5
   }
 );
 

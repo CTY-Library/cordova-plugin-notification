@@ -69,6 +69,7 @@ CTYNotificationExport.sendLocalNotification = function(successCallback, errorCal
     const isLargeText = getValue(options.isLargeText, false);
     const isImportant = getValue(options.isImportant, false);
     const repeat = getValue(options.repeat, false);
+    const total = getValue(options.total, 0);
     let delay = getValue(options.delay, '');
     let interval = getValue(options.interval, '');
         // Normalize delay: if numeric (seconds) convert to datetime string;
@@ -100,9 +101,9 @@ CTYNotificationExport.sendLocalNotification = function(successCallback, errorCal
         }
     // Debug log: help detect duplicate scheduling from JS side
     try {
-        console.log('CTYNotification.exec:', {notificationId, title, delay, repeat, interval, notificationType, timedType});
+        console.log('CTYNotification.exec:', {notificationId, title, delay, repeat, interval, total, notificationType, timedType});
     } catch (e) {}
-    exec(successCallback, errorCallback, 'CtyNotification', notificationType, [notificationId, title, subtitle, message, thumbnail, image, delay, repeat, interval, timedType]);
+    exec(successCallback, errorCallback, 'CtyNotification', notificationType, [notificationId, title, subtitle, message, thumbnail, image, delay, repeat, interval, timedType, total]);
 }
 CTYNotificationExport.cancelLocalNotification = function(successCallback, errorCallback, notificationId){
     exec(successCallback, errorCallback, 'CtyNotification', 'timedCancelNotice', [notificationId, '', '', '', '', '', '', true, '', '']);

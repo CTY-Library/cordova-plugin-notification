@@ -98,6 +98,7 @@ public class CtyNotification extends  CordovaPlugin {
         boolean strRepeat =Boolean.parseBoolean(args.getString(7)); //是否重复推送
         String interval =args.getString(8); //通知时间
         String strType =args.getString(9); //通知时间
+        int total = args.length() > 10 ? args.optInt(10, 0) : 0; //重复总次数，0=无限
 
         //初始化
         if (action.equals("commonNotification")) {
@@ -134,7 +135,7 @@ public class CtyNotification extends  CordovaPlugin {
                     callbackContext.error("strDate cannot be empty");
                     return true;
                 }
-                LocalNotificationScheduler.scheduleLocalNotification(mActContext,notificationId,title,subText,message,urlLargeIco,urlBigImage,strType, strDate,interval,strRepeat);
+                LocalNotificationScheduler.scheduleLocalNotification(mActContext,notificationId,title,subText,message,urlLargeIco,urlBigImage,strType, strDate,interval,strRepeat,total);
                 callbackContext.success("success");
                 return  true;
             } catch (ParseException e) {

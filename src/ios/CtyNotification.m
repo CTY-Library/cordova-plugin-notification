@@ -660,6 +660,7 @@
     NSString* strRepeat = [command.arguments objectAtIndex:7];
     NSString* interval =[command.arguments objectAtIndex:8]; //通知间隔时间
     NSString* strType = [command.arguments objectAtIndex:9];
+    NSInteger total = [command.arguments count] > 10 ? [[command.arguments objectAtIndex:10] integerValue] : 0;
 
     //请求通知权限
     [self requestNotificationPermission:^(BOOL granted) {
@@ -765,7 +766,8 @@
                 UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
                 if (useShortIntervalBatch) {
                     // Pre-queue multiple one-shot notifications to emulate short-interval repeats in background.
-                    NSInteger batchCount = 30;
+                    // Use total if specified; otherwise default to 30.
+                    NSInteger batchCount = (total > 0) ? total : 30;
                     NSDate *baseDate = nsDate ?: [NSDate dateWithTimeIntervalSinceNow:intValue > 0 ? intValue : 1];
                     for (NSInteger i = 0; i < batchCount; i++) {
                         NSDate *fireDate = [baseDate dateByAddingTimeInterval:(NSTimeInterval)(i * intValue)];
