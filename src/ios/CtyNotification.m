@@ -698,20 +698,41 @@
         //Create trigger with interval
         int intValue=[interval intValue];
         UNNotificationTrigger *trigger;
+        BOOL useShortIntervalBatch = NO;
 
         //判断是否是Int值
         if(intValue!=0||[interval isEqualToString:@"0"]) {
             if (intValue >= 60) {
                 trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:(NSTimeInterval)intValue repeats:YES];
             } else {
-                NSLog(@"CtyNotification: repeating timeInterval < 60s not supported by iOS, scheduling single occurrence");
-                trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:(NSTimeInterval)intValue repeats:NO];
+                // iOS does not support repeats=YES for interval < 60s.
+                // Use pre-queued one-shot notifications instead.
+                NSLog(@"CtyNotification: interval < 60s, switching to pre-queued one-shot scheduling");
+                useShortIntervalBatch = YES;
+                trigger = nil;
             }
         } else {
             NSDate *nsIntervalDate = [dateFormatter dateFromString:interval];//间隔时间为日期时
             NSDateComponents *oneTime = [calendar components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond fromDate:nsIntervalDate];
             trigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:oneTime repeats:YES];
         }
+
+        // Attach metadata so short-interval repeats (<60s) can auto-reschedule
+        NSMutableDictionary *ctyUserInfo = [NSMutableDictionary dictionary];
+        [ctyUserInfo setObject:@(YES) forKey:@"cty_repeat"];
+        if(intValue!=0||[interval isEqualToString:@"0"]) {
+            [ctyUserInfo setObject:@(intValue) forKey:@"cty_interval"];
+        } else {
+            if (interval) [ctyUserInfo setObject:interval forKey:@"cty_interval_raw"];
+        }
+        [ctyUserInfo setObject:@(!useShortIntervalBatch) forKey:@"cty_reschedule"];
+        if (notificationId) [ctyUserInfo setObject:notificationId forKey:@"cty_notificationId"];
+        if (title) [ctyUserInfo setObject:title forKey:@"cty_title"];
+        if (subtitle) [ctyUserInfo setObject:subtitle forKey:@"cty_subtitle"];
+        if (message) [ctyUserInfo setObject:message forKey:@"cty_message"];
+        if (strType) [ctyUserInfo setObject:strType forKey:@"cty_strType"];
+        if (urlBigImage) [ctyUserInfo setObject:urlBigImage forKey:@"cty_urlBigImage"];
+        content.userInfo = ctyUserInfo;
 
         // 异步下载图片并在主线程创建并添加通知请求
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
@@ -741,21 +762,46 @@
                 if (attachment) {
                     content.attachments = @[attachment];
                 }
-                //设置通知请求
-                //如果使用相同的[requestWithIdentifier]会一直覆盖之前的旧通知
-                NSString* identifier = [[NSUUID UUID] UUIDString];
-                UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
-
-                //将通知添加到UNUserNotificationCenter中
                 UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
-                [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
-                    if (error) {
-                        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[NSString stringWithFormat:@"error: %@", error.description]];
-                    } else {
-                        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"success"];
+                if (useShortIntervalBatch) {
+                    // Pre-queue multiple one-shot notifications to emulate short-interval repeats in background.
+                    NSInteger batchCount = 30;
+                    NSDate *baseDate = nsDate ?: [NSDate dateWithTimeIntervalSinceNow:intValue > 0 ? intValue : 1];
+                    for (NSInteger i = 0; i < batchCount; i++) {
+                        NSDate *fireDate = [baseDate dateByAddingTimeInterval:(NSTimeInterval)(i * intValue)];
+                        NSDateComponents *dc = [calendar components:NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond fromDate:fireDate];
+                        UNCalendarNotificationTrigger *oneShot = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:dc repeats:NO];
+
+                        UNMutableNotificationContent *itemContent = [[UNMutableNotificationContent alloc] init];
+                        itemContent.badge = @0;
+                        itemContent.title = content.title ?: @"";
+                        itemContent.subtitle = content.subtitle ?: @"";
+                        itemContent.body = content.body ?: @"";
+                        itemContent.sound = [UNNotificationSound defaultSound];
+                        itemContent.userInfo = content.userInfo;
+                        if (attachment) {
+                            itemContent.attachments = @[attachment];
+                        }
+
+                        NSString *identifier = [NSString stringWithFormat:@"cty-short-%@-%ld", notificationId ?: @"0", (long)i];
+                        UNNotificationRequest *req = [UNNotificationRequest requestWithIdentifier:identifier content:itemContent trigger:oneShot];
+                        [center addNotificationRequest:req withCompletionHandler:nil];
                     }
+                    pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"success"];
                     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-                }];
+                } else {
+                    //设置通知请求
+                    NSString* identifier = [[NSUUID UUID] UUIDString];
+                    UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
+                    [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+                        if (error) {
+                            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[NSString stringWithFormat:@"error: %@", error.description]];
+                        } else {
+                            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"success"];
+                        }
+                        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+                    }];
+                }
             });
         });
         
@@ -828,7 +874,7 @@
 //仅当应用程序在前台时，才会调用这个方法，如果未实现该方法，通知将不会被触发
 -(void)userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
     NSDictionary *ui = notification.request.content.userInfo;
-    if (ui && ui[@"cty_repeat"]) {
+    if (ui && [ui[@"cty_reschedule"] boolValue]) {
         NSNumber *ival = ui[@"cty_interval"];
         if (ival && [ival intValue] > 0 && [ival intValue] < 60) {
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -846,7 +892,7 @@
 //当接收到通知，在用户点击通知激活应用程序时调用这个方法，无论是在前台还是后台
 -(void)userNotificationCenter:(UNUserNotificationCenter *)center didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void (^)(void))completionHandler {
     NSDictionary *ui = response.notification.request.content.userInfo;
-    if (ui && ui[@"cty_repeat"]) {
+    if (ui && [ui[@"cty_reschedule"] boolValue]) {
         NSNumber *ival = ui[@"cty_interval"];
         if (ival && [ival intValue] > 0 && [ival intValue] < 60) {
             dispatch_async(dispatch_get_main_queue(), ^{
