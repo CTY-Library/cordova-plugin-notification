@@ -262,22 +262,6 @@
                 NSLog(@"CtyNotification: failed to download image for URL=%@", urlBigImage);
             }
 
-            // Attach metadata for repeating schedules so we can reschedule short-interval repeats
-            NSMutableDictionary *ctyUserInfo = [NSMutableDictionary dictionary];
-            [ctyUserInfo setObject:@(YES) forKey:@"cty_repeat"];
-            if (intValue!=0 || [interval isEqualToString:@"0"]) {
-                [ctyUserInfo setObject:@(intValue) forKey:@"cty_interval"];
-            } else {
-                if (interval) [ctyUserInfo setObject:interval forKey:@"cty_interval_raw"];
-            }
-            if (notificationId) [ctyUserInfo setObject:notificationId forKey:@"cty_notificationId"];
-            if (title) [ctyUserInfo setObject:title forKey:@"cty_title"];
-            if (subtitle) [ctyUserInfo setObject:subtitle forKey:@"cty_subtitle"];
-            if (message) [ctyUserInfo setObject:message forKey:@"cty_message"];
-            if (strType) [ctyUserInfo setObject:strType forKey:@"cty_strType"];
-            if (urlBigImage) [ctyUserInfo setObject:urlBigImage forKey:@"cty_urlBigImage"];
-            content.userInfo = ctyUserInfo;
-
             dispatch_async(dispatch_get_main_queue(), ^{
                 if (attachment) {
                     content.attachments = @[attachment];
