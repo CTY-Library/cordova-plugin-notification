@@ -60,7 +60,7 @@ CTYNotificationExport.sendLocalNotification = function(successCallback, errorCal
     argscheck.checkArgs('fFO', 'CTYNotificationExport.sendLocalNotification', arguments);
     options = options || {};
     const getValue = argscheck.getValue;
-    const notificationId = getValue(options.quality, Number((Date.now()+'').slice(4)));
+        const notificationId = getValue(options.notificationId, Number((Date.now()+'').slice(4)));
     const title = getValue(options.title, '');
     const subtitle = getValue(options.subtitle, '');
     const message = getValue(options.message, '');
@@ -71,6 +71,13 @@ CTYNotificationExport.sendLocalNotification = function(successCallback, errorCal
     const repeat = getValue(options.repeat, false);
     let delay = getValue(options.delay, '');
     let interval = getValue(options.interval, '');
+        // Normalize delay: if numeric (seconds) convert to datetime string;
+        // if non-empty string assume it's already a datetime string.
+        const hasDelay = delay !== '' && delay !== null && delay !== undefined;
+        if (hasDelay && !isNaN(Number(delay))) {
+            const date = new Date(Date.now() + Number(delay) * 1000);
+            delay = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+        }
     var notificationType = CTYNotification.NotificationType.COMMON;
     if(thumbnail||image){
         notificationType = CTYNotification.NotificationType.BIGIMAGE;
@@ -79,10 +86,6 @@ CTYNotificationExport.sendLocalNotification = function(successCallback, errorCal
     }else if(isLargeText){
         notificationType = CTYNotification.NotificationType.LARGETEXT;
     }
-    if(+delay){
-        let date = new Date(+new Date() + delay*1000);
-        delay = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
-    }
     // If interval is numeric and this is a repeating notification, keep it as seconds.
     // Only convert interval to a date string when it's a one-off (non-repeating) scheduled time.
     if (+interval && !repeat) {
@@ -90,9 +93,11 @@ CTYNotificationExport.sendLocalNotification = function(successCallback, errorCal
         interval = `${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
     }
     var timedType = notificationType;
-    if(repeat){
-        notificationType = CTYNotification.NotificationType.TIMED;
-    }
+        // If this is a repeating notification or a scheduled (delay) notification,
+        // use the TIMED notification type so native code schedules it.
+        if(repeat || (hasDelay && delay !== '')){
+            notificationType = CTYNotification.NotificationType.TIMED;
+        }
     exec(successCallback, errorCallback, 'CtyNotification', notificationType, [notificationId, title, subtitle, message, thumbnail, image, delay, repeat, interval, timedType]);
 }
 CTYNotificationExport.cancelLocalNotification = function(successCallback, errorCallback, notificationId){
