@@ -9,6 +9,7 @@ CTYNotification.sendLocalNotification(
   (result) => console.log("SUCCESS:", result),
   (error) => console.log("ERROR:", error),
   {
+    notificationId: 1001,
     title: '立即通知',
     message: '这是一条立即通知（无延迟）',
   }
@@ -20,6 +21,7 @@ CTYNotification.sendLocalNotification(
   (result) => console.log("SUCCESS:", result),
   (error) => console.log("ERROR:", error),
   {
+    notificationId: 1002,
     title: '延迟通知',
     message: '这是一条延迟 5 秒的通知',
     delay: 5,
@@ -32,9 +34,10 @@ CTYNotification.sendLocalNotification(
   (result) => console.log("SUCCESS:", result),
   (error) => console.log("ERROR:", error),
   {
+    notificationId: 3001,
     title: '重复通知',
-    message: '这是一条会重复的通知（首次 5s 后，每隔 10s 重复一次）',
-    delay: 5,
+    message: '这是一条会重复的通知（首次 6s 后，每隔 10s 重复一次）',
+    delay: 6,
     repeat: true,
     interval: 10,
   }
@@ -46,9 +49,10 @@ CTYNotification.sendLocalNotification(
   (result) => console.log("SUCCESS:", result),
   (error) => console.log("ERROR:", error),
   {
+    notificationId: 1004,
     title: '图片通知',
     message: '这是一条带图片的通知',
-    delay: 5,
+    delay: 8,
     image: 'https://cdn-qa-js.szhytop.com/upload/image/20251211/251211114705105029.png',
   }
 );

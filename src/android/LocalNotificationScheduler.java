@@ -88,8 +88,16 @@ public class LocalNotificationScheduler {
                 else
                 {
                     long intervalMillis = Integer.parseInt(interval) * 1000L;
-                    Log.d("CtyNotification", "scheduleLocalNotification: numeric intervalMillis=" + intervalMillis);
-                    alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), intervalMillis, pendingIntent);
+                    long triggerAt = calendar.getTimeInMillis();
+                    long now = System.currentTimeMillis();
+                    if (triggerAt <= now) {
+                        long missed = now - triggerAt;
+                        long steps = missed / intervalMillis + 1;
+                        triggerAt += steps * intervalMillis;
+                        Log.d("CtyNotification", "scheduleLocalNotification: adjusted triggerAt to next future occurrence=" + triggerAt);
+                    }
+                    Log.d("CtyNotification", "scheduleLocalNotification: numeric intervalMillis=" + intervalMillis + " nextTrigger=" + triggerAt);
+                    alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, triggerAt, intervalMillis, pendingIntent);
                 }
             }
         }
@@ -205,9 +213,16 @@ public class LocalNotificationScheduler {
         }
     }
     public static void execute(Runnable runnable) {
-        // 创建一个线程池
-        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
-        // 提交任务到线程池
-        threadPoolExecutor.submit(runnable);
+        // Submit to a shared single-thread executor to avoid creating many short-lived pools
+        THREAD_POOL.submit(runnable);
     }
+
+    // Reuse a single-thread executor for all scheduled work to avoid resource leaks
+    private static final ThreadPoolExecutor THREAD_POOL = new ThreadPoolExecutor(
+            1,
+            1,
+            0L,
+            TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<Runnable>()
+    );
 }

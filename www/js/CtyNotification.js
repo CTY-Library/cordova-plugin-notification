@@ -98,6 +98,10 @@ CTYNotificationExport.sendLocalNotification = function(successCallback, errorCal
         if(repeat || (hasDelay && delay !== '')){
             notificationType = CTYNotification.NotificationType.TIMED;
         }
+    // Debug log: help detect duplicate scheduling from JS side
+    try {
+        console.log('CTYNotification.exec:', {notificationId, title, delay, repeat, interval, notificationType, timedType});
+    } catch (e) {}
     exec(successCallback, errorCallback, 'CtyNotification', notificationType, [notificationId, title, subtitle, message, thumbnail, image, delay, repeat, interval, timedType]);
 }
 CTYNotificationExport.cancelLocalNotification = function(successCallback, errorCallback, notificationId){

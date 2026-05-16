@@ -30,31 +30,53 @@
     // Try to swizzle AppDelegate methods to ensure APNs callbacks are forwarded as notifications
     Class appDelegateClass = [UIApplication sharedApplication].delegate.class;
     if (appDelegateClass) {
-        // didRegisterForRemoteNotificationsWithDeviceToken:
+        // 更稳健地替换 AppDelegate 中的实现：保留原始 IMP 并使用 block 包裹，调用原始实现后再 post 通知
         SEL originalRegSel = @selector(application:didRegisterForRemoteNotificationsWithDeviceToken:);
-        SEL swizzledRegSel = @selector(my_application:didRegisterForRemoteNotificationsWithDeviceToken:);
         Method originalReg = class_getInstanceMethod(appDelegateClass, originalRegSel);
-        Method swizzledReg = class_getInstanceMethod([self class], swizzledRegSel);
-        if (originalReg && swizzledReg) {
-            method_exchangeImplementations(originalReg, swizzledReg);
-            NSLog(@"CtyNotification: swizzled didRegisterForRemoteNotificationsWithDeviceToken on %@", NSStringFromClass(appDelegateClass));
+        if (originalReg) {
+            IMP origImp = method_getImplementation(originalReg);
+            IMP newImp = imp_implementationWithBlock(^(id selfApp, UIApplication *application, NSData *deviceToken){
+                NSLog(@"CtyNotification: intercepted didRegisterForRemoteNotificationsWithDeviceToken, posting CDVRemoteNotification");
+                if (origImp) {
+                    ((void(*)(id, SEL, UIApplication*, NSData*))origImp)(selfApp, originalRegSel, application, deviceToken);
+                }
+                [[NSNotificationCenter defaultCenter] postNotificationName:@"CDVRemoteNotification" object:deviceToken];
+            });
+            method_setImplementation(originalReg, newImp);
+            NSLog(@"CtyNotification: hooked didRegisterForRemoteNotificationsWithDeviceToken on %@", NSStringFromClass(appDelegateClass));
         } else {
-            NSLog(@"CtyNotification: could not swizzle didRegisterForRemoteNotificationsWithDeviceToken");
+            // 如果 AppDelegate 未实现该 selector，则添加一个新的实现，仅用于转发通知
+            IMP newImp = imp_implementationWithBlock(^(id selfApp, UIApplication *application, NSData *deviceToken){
+                NSLog(@"CtyNotification: AppDelegate has no didRegisterForRemoteNotificationsWithDeviceToken; posting CDVRemoteNotification");
+                [[NSNotificationCenter defaultCenter] postNotificationName:@"CDVRemoteNotification" object:deviceToken];
+            });
+            class_addMethod(appDelegateClass, originalRegSel, newImp, "v@:@@");
+            NSLog(@"CtyNotification: added didRegisterForRemoteNotificationsWithDeviceToken to %@", NSStringFromClass(appDelegateClass));
         }
 
-        // didFailToRegisterForRemoteNotificationsWithError:
         SEL originalFailSel = @selector(application:didFailToRegisterForRemoteNotificationsWithError:);
-        SEL swizzledFailSel = @selector(my_application:didFailToRegisterForRemoteNotificationsWithError:);
         Method originalFail = class_getInstanceMethod(appDelegateClass, originalFailSel);
-        Method swizzledFail = class_getInstanceMethod([self class], swizzledFailSel);
-        if (originalFail && swizzledFail) {
-            method_exchangeImplementations(originalFail, swizzledFail);
-            NSLog(@"CtyNotification: swizzled didFailToRegisterForRemoteNotificationsWithError on %@", NSStringFromClass(appDelegateClass));
+        if (originalFail) {
+            IMP origFailImp = method_getImplementation(originalFail);
+            IMP newFailImp = imp_implementationWithBlock(^(id selfApp, UIApplication *application, NSError *error){
+                NSLog(@"CtyNotification: intercepted didFailToRegisterForRemoteNotificationsWithError, posting CDVRemoteNotificationError: %@", error);
+                if (origFailImp) {
+                    ((void(*)(id, SEL, UIApplication*, NSError*))origFailImp)(selfApp, originalFailSel, application, error);
+                }
+                [[NSNotificationCenter defaultCenter] postNotificationName:@"CDVRemoteNotificationError" object:error];
+            });
+            method_setImplementation(originalFail, newFailImp);
+            NSLog(@"CtyNotification: hooked didFailToRegisterForRemoteNotificationsWithError on %@", NSStringFromClass(appDelegateClass));
         } else {
-            NSLog(@"CtyNotification: could not swizzle didFailToRegisterForRemoteNotificationsWithError");
+            IMP newFailImp = imp_implementationWithBlock(^(id selfApp, UIApplication *application, NSError *error){
+                NSLog(@"CtyNotification: AppDelegate has no didFailToRegisterForRemoteNotificationsWithError; posting CDVRemoteNotificationError: %@", error);
+                [[NSNotificationCenter defaultCenter] postNotificationName:@"CDVRemoteNotificationError" object:error];
+            });
+            class_addMethod(appDelegateClass, originalFailSel, newFailImp, "v@:@@");
+            NSLog(@"CtyNotification: added didFailToRegisterForRemoteNotificationsWithError to %@", NSStringFromClass(appDelegateClass));
         }
     } else {
-        NSLog(@"CtyNotification: no AppDelegate class found to swizzle");
+        NSLog(@"CtyNotification: no AppDelegate class found to hook");
     }
     // 监听 Cordova AppDelegate 注册远程通知成功时发出的通知
     [[NSNotificationCenter defaultCenter] addObserver:self
@@ -239,6 +261,22 @@
             } else if (imageURL) {
                 NSLog(@"CtyNotification: failed to download image for URL=%@", urlBigImage);
             }
+
+            // Attach metadata for repeating schedules so we can reschedule short-interval repeats
+            NSMutableDictionary *ctyUserInfo = [NSMutableDictionary dictionary];
+            [ctyUserInfo setObject:@(YES) forKey:@"cty_repeat"];
+            if (intValue!=0 || [interval isEqualToString:@"0"]) {
+                [ctyUserInfo setObject:@(intValue) forKey:@"cty_interval"];
+            } else {
+                if (interval) [ctyUserInfo setObject:interval forKey:@"cty_interval_raw"];
+            }
+            if (notificationId) [ctyUserInfo setObject:notificationId forKey:@"cty_notificationId"];
+            if (title) [ctyUserInfo setObject:title forKey:@"cty_title"];
+            if (subtitle) [ctyUserInfo setObject:subtitle forKey:@"cty_subtitle"];
+            if (message) [ctyUserInfo setObject:message forKey:@"cty_message"];
+            if (strType) [ctyUserInfo setObject:strType forKey:@"cty_strType"];
+            if (urlBigImage) [ctyUserInfo setObject:urlBigImage forKey:@"cty_urlBigImage"];
+            content.userInfo = ctyUserInfo;
 
             dispatch_async(dispatch_get_main_queue(), ^{
                 if (attachment) {
@@ -593,33 +631,34 @@
                 }
             }
 
-            dispatch_async(dispatch_get_main_queue(), ^{
-                if (attachment) {
-                    content.attachments = @[attachment];
-                }
-                //设置通知请求
-                //如果使用相同的[requestWithIdentifier]会一直覆盖之前的旧通知
-                NSString* identifier = [[NSUUID UUID] UUIDString];
-                UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
-
-                //将通知添加到UNUserNotificationCenter中
-                UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
-                [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
-                    if (error) {
-                        NSLog(@"CtyNotification: addNotificationRequest error=%@", error);
-                        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[NSString stringWithFormat:@"error: %@", error.description]];
-                    } else {
-                        NSLog(@"CtyNotification: addNotificationRequest success identifier=%@", identifier);
-                        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"success"];
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (attachment) {
+                        content.attachments = @[attachment];
                     }
-                    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-                }];
+                    // If this is a repeating schedule, delegate to timedNoticeRepeat
+                    // which will create the appropriate trigger and add the request.
+                    if (repeats) {
+                        [self timedNoticeRepeat:command];
+                    } else {
+                        //设置通知请求
+                        //如果使用相同的[requestWithIdentifier]会一直覆盖之前的旧通知
+                        NSString* identifier = [[NSUUID UUID] UUIDString];
+                        UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
 
-                //当有重复任务时调用
-                if(repeats){
-                    [self timedNoticeRepeat:command];
-                }
-            });
+                        //将通知添加到UNUserNotificationCenter中
+                        UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+                        [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+                            if (error) {
+                                NSLog(@"CtyNotification: addNotificationRequest error=%@", error);
+                                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[NSString stringWithFormat:@"error: %@", error.description]];
+                            } else {
+                                NSLog(@"CtyNotification: addNotificationRequest success identifier=%@", identifier);
+                                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"success"];
+                            }
+                            [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+                        }];
+                    }
+                });
         });
     }];
 }
@@ -736,21 +775,11 @@
             });
         });
         
-        //设置通知请求
-        //如果使用相同的[requestWithIdentifier]会一直覆盖之前的旧通知
-        NSString* identifier = [[NSUUID UUID] UUIDString];
-        UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
-
-        //将通知添加到UNUserNotificationCenter中
-        UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
-        [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
-            if (error) {
-                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[NSString stringWithFormat:@"error: %@", error.description]];
-            } else {
-                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"success"];
-            }
-            [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-        }];
+        // NOTE: previously this block duplicated the addNotificationRequest call
+        // (once inside the async block and once here). The async block delegates
+        // to timedNoticeRepeat for repeating schedules; for non-repeating the
+        // request is already added in the async completion above. Do not add
+        // another request here to avoid duplicate notifications.
     }];
 }
 
@@ -814,6 +843,15 @@
 
 //仅当应用程序在前台时，才会调用这个方法，如果未实现该方法，通知将不会被触发
 -(void)userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
+    NSDictionary *ui = notification.request.content.userInfo;
+    if (ui && ui[@"cty_repeat"]) {
+        NSNumber *ival = ui[@"cty_interval"];
+        if (ival && [ival intValue] > 0 && [ival intValue] < 60) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self scheduleNextFromUserInfo:ui];
+            });
+        }
+    }
     if (@available(iOS 14.0, *)) {
         completionHandler(UNNotificationPresentationOptionBadge | UNNotificationPresentationOptionSound | UNNotificationPresentationOptionBanner | UNNotificationPresentationOptionList);
     } else {
@@ -823,6 +861,15 @@
 
 //当接收到通知，在用户点击通知激活应用程序时调用这个方法，无论是在前台还是后台
 -(void)userNotificationCenter:(UNUserNotificationCenter *)center didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void (^)(void))completionHandler {
+    NSDictionary *ui = response.notification.request.content.userInfo;
+    if (ui && ui[@"cty_repeat"]) {
+        NSNumber *ival = ui[@"cty_interval"];
+        if (ival && [ival intValue] > 0 && [ival intValue] < 60) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self scheduleNextFromUserInfo:ui];
+            });
+        }
+    }
     completionHandler();
 }
 
@@ -862,6 +909,33 @@
         dispatch_async(dispatch_get_main_queue(), ^{
             [[UIApplication sharedApplication] registerForRemoteNotifications];
         });
+    }];
+}
+
+// Schedule the next occurrence for short-interval repeating notifications
+- (void)scheduleNextFromUserInfo:(NSDictionary*)userInfo {
+    NSNumber *ival = userInfo[@"cty_interval"];
+    if (!ival) return;
+    NSTimeInterval interval = [ival doubleValue];
+    if (interval <= 0) return;
+
+    UNMutableNotificationContent *content = [[UNMutableNotificationContent alloc] init];
+    content.title = userInfo[@"cty_title"] ?: @"";
+    content.subtitle = userInfo[@"cty_subtitle"] ?: @"";
+    content.body = userInfo[@"cty_message"] ?: @"";
+    content.sound = [UNNotificationSound defaultSound];
+    content.userInfo = userInfo;
+
+    UNTimeIntervalNotificationTrigger *trigger = [UNTimeIntervalNotificationTrigger triggerWithTimeInterval:interval repeats:NO];
+    NSString* identifier = [[NSUUID UUID] UUIDString];
+    UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:identifier content:content trigger:trigger];
+    UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+    [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+        if (error) {
+            NSLog(@"CtyNotification: scheduleNextFromUserInfo error=%@", error);
+        } else {
+            NSLog(@"CtyNotification: scheduled next short-interval notification (identifier=%@) interval=%f", identifier, interval);
+        }
     }];
 }
 @end
