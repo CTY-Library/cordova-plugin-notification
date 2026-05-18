@@ -6,8 +6,6 @@
 
 @interface CtyNotification : CDVPlugin{
     CDVPluginResult* pluginResult;
-    NSData *_deviceToken;
-    NSString *_pendingTokenCallbackId;
 }
      -(void) commonNotification:(CDVInvokedUrlCommand*)command;
      -(void) timedNotice:(CDVInvokedUrlCommand*)command;
@@ -17,7 +15,6 @@
      -(void) bigImageNotice:(CDVInvokedUrlCommand*)command;
      -(void) largeTextNotice:(CDVInvokedUrlCommand*)command;
      -(void) importantNotice:(CDVInvokedUrlCommand*)command;
-     -(void) getDeviceToken:(CDVInvokedUrlCommand*)command;
      -(void) requestNotificationPermission:(void(^)(BOOL granted))completionHandler;
 @end
 
@@ -26,68 +23,7 @@
 - (void)pluginInitialize {
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
     center.delegate = self;
-    NSLog(@"CtyNotification: pluginInitialize start, setting up APNs forwarding and observers");
-    // Try to swizzle AppDelegate methods to ensure APNs callbacks are forwarded as notifications
-    Class appDelegateClass = [UIApplication sharedApplication].delegate.class;
-    if (appDelegateClass) {
-        // 更稳健地替换 AppDelegate 中的实现：保留原始 IMP 并使用 block 包裹，调用原始实现后再 post 通知
-        SEL originalRegSel = @selector(application:didRegisterForRemoteNotificationsWithDeviceToken:);
-        Method originalReg = class_getInstanceMethod(appDelegateClass, originalRegSel);
-        if (originalReg) {
-            IMP origImp = method_getImplementation(originalReg);
-            IMP newImp = imp_implementationWithBlock(^(id selfApp, UIApplication *application, NSData *deviceToken){
-                NSLog(@"CtyNotification: intercepted didRegisterForRemoteNotificationsWithDeviceToken, posting CDVRemoteNotification");
-                if (origImp) {
-                    ((void(*)(id, SEL, UIApplication*, NSData*))origImp)(selfApp, originalRegSel, application, deviceToken);
-                }
-                [[NSNotificationCenter defaultCenter] postNotificationName:@"CDVRemoteNotification" object:deviceToken];
-            });
-            method_setImplementation(originalReg, newImp);
-            NSLog(@"CtyNotification: hooked didRegisterForRemoteNotificationsWithDeviceToken on %@", NSStringFromClass(appDelegateClass));
-        } else {
-            // 如果 AppDelegate 未实现该 selector，则添加一个新的实现，仅用于转发通知
-            IMP newImp = imp_implementationWithBlock(^(id selfApp, UIApplication *application, NSData *deviceToken){
-                NSLog(@"CtyNotification: AppDelegate has no didRegisterForRemoteNotificationsWithDeviceToken; posting CDVRemoteNotification");
-                [[NSNotificationCenter defaultCenter] postNotificationName:@"CDVRemoteNotification" object:deviceToken];
-            });
-            class_addMethod(appDelegateClass, originalRegSel, newImp, "v@:@@");
-            NSLog(@"CtyNotification: added didRegisterForRemoteNotificationsWithDeviceToken to %@", NSStringFromClass(appDelegateClass));
-        }
-
-        SEL originalFailSel = @selector(application:didFailToRegisterForRemoteNotificationsWithError:);
-        Method originalFail = class_getInstanceMethod(appDelegateClass, originalFailSel);
-        if (originalFail) {
-            IMP origFailImp = method_getImplementation(originalFail);
-            IMP newFailImp = imp_implementationWithBlock(^(id selfApp, UIApplication *application, NSError *error){
-                NSLog(@"CtyNotification: intercepted didFailToRegisterForRemoteNotificationsWithError, posting CDVRemoteNotificationError: %@", error);
-                if (origFailImp) {
-                    ((void(*)(id, SEL, UIApplication*, NSError*))origFailImp)(selfApp, originalFailSel, application, error);
-                }
-                [[NSNotificationCenter defaultCenter] postNotificationName:@"CDVRemoteNotificationError" object:error];
-            });
-            method_setImplementation(originalFail, newFailImp);
-            NSLog(@"CtyNotification: hooked didFailToRegisterForRemoteNotificationsWithError on %@", NSStringFromClass(appDelegateClass));
-        } else {
-            IMP newFailImp = imp_implementationWithBlock(^(id selfApp, UIApplication *application, NSError *error){
-                NSLog(@"CtyNotification: AppDelegate has no didFailToRegisterForRemoteNotificationsWithError; posting CDVRemoteNotificationError: %@", error);
-                [[NSNotificationCenter defaultCenter] postNotificationName:@"CDVRemoteNotificationError" object:error];
-            });
-            class_addMethod(appDelegateClass, originalFailSel, newFailImp, "v@:@@");
-            NSLog(@"CtyNotification: added didFailToRegisterForRemoteNotificationsWithError to %@", NSStringFromClass(appDelegateClass));
-        }
-    } else {
-        NSLog(@"CtyNotification: no AppDelegate class found to hook");
-    }
-    // 监听 Cordova AppDelegate 注册远程通知成功时发出的通知
-    [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(onDidRegisterForRemoteNotifications:)
-                                                 name:@"CDVRemoteNotification"
-                                               object:nil];
-    // 监听注册失败
-    [[NSNotificationCenter defaultCenter] addObserver:self
-                                             selector:@selector(onDidFailToRegisterForRemoteNotifications:)
-                                                 name:@"CDVRemoteNotificationError"
-                                               object:nil];
+    NSLog(@"CtyNotification: pluginInitialize start");
 }
 
 // JS action wrappers (match names from CtyNotificationConstants.js)
@@ -108,66 +44,7 @@
     [self timedNotice:command];
 }
 
-// Swizzled implementations — these will run in AppDelegate's context after exchange
-- (void)my_application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
-    NSLog(@"CtyNotification: swizzled AppDelegate didRegisterForRemoteNotificationsWithDeviceToken called, posting CDVRemoteNotification");
-    // Call original implementation (after method swizzle this calls original)
-    if ([UIApplication sharedApplication].delegate && [[UIApplication sharedApplication].delegate respondsToSelector:@selector(my_application:didRegisterForRemoteNotificationsWithDeviceToken:)]) {
-        // call the original implementation (which is now named my_application:... due to swizzle)
-        [[UIApplication sharedApplication].delegate performSelector:@selector(my_application:didRegisterForRemoteNotificationsWithDeviceToken:) withObject:application withObject:deviceToken];
-    }
-    // Post notification so plugin can receive it
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"CDVRemoteNotification" object:deviceToken];
-}
-
-- (void)my_application:(UIApplication *)application didFailToRegisterForRemoteNotificationsWithError:(NSError *)error {
-    NSLog(@"CtyNotification: swizzled AppDelegate didFailToRegisterForRemoteNotificationsWithError called, posting CDVRemoteNotificationError: %@", error);
-    if ([UIApplication sharedApplication].delegate && [[UIApplication sharedApplication].delegate respondsToSelector:@selector(my_application:didFailToRegisterForRemoteNotificationsWithError:)]) {
-        [[UIApplication sharedApplication].delegate performSelector:@selector(my_application:didFailToRegisterForRemoteNotificationsWithError:) withObject:application withObject:error];
-    }
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"CDVRemoteNotificationError" object:error];
-}
-
-- (void)onDidRegisterForRemoteNotifications:(NSNotification *)notification {
-    NSLog(@"CtyNotification: onDidRegisterForRemoteNotifications called");
-    _deviceToken = (NSData *)notification.object;
-    if (_pendingTokenCallbackId) {
-        NSString *hexToken = [self hexStringFromDeviceToken:_deviceToken];
-        NSLog(@"CtyNotification: device token received, sending to callback %@ token=%@", _pendingTokenCallbackId, hexToken);
-        CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:hexToken];
-        [self.commandDelegate sendPluginResult:result callbackId:_pendingTokenCallbackId];
-        _pendingTokenCallbackId = nil;
-    }
-}
-
-- (void)onDidFailToRegisterForRemoteNotifications:(NSNotification *)notification {
-    NSLog(@"CtyNotification: onDidFailToRegisterForRemoteNotifications called");
-    if (_pendingTokenCallbackId) {
-        NSError *error = (NSError *)notification.object;
-        NSLog(@"CtyNotification: registration failed, error=%@, callback=%@", error, _pendingTokenCallbackId);
-        CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                   messageAsString:error.localizedDescription ?: @"注册远程通知失败"];
-        [self.commandDelegate sendPluginResult:result callbackId:_pendingTokenCallbackId];
-        _pendingTokenCallbackId = nil;
-    }
-}
-
-- (NSString *)hexStringFromDeviceToken:(NSData *)token {
-    NSString *systemVersion = [UIDevice currentDevice].systemVersion;
-    if ([systemVersion doubleValue] > 13.0) {
-        NSUInteger len = token.length;
-        const unsigned char *buf = (const unsigned char *)token.bytes;
-        NSMutableString *hex = [NSMutableString stringWithCapacity:len * 2];
-        for (NSUInteger i = 0; i < len; i++) {
-            [hex appendFormat:@"%02x", buf[i]];
-        }
-        return [hex copy];
-    } else {
-        NSString *hex = [[token description] stringByTrimmingCharactersInSet:
-                         [NSCharacterSet characterSetWithCharactersInString:@"<>"]];
-        return [hex stringByReplacingOccurrencesOfString:@" " withString:@""];
-    }
-}
+// APNs/token handling removed: plugin no longer exposes getDeviceToken.
 
 //请求通知权限
 - (void) requestNotificationPermission:(void(^)(BOOL granted))completionHandler {
@@ -905,11 +782,7 @@
     completionHandler();
 }
 
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [[UIApplication sharedApplication] registerForRemoteNotifications];
-        });
-    }];
-}
+
 
 // Schedule the next occurrence for short-interval repeating notifications
 - (void)scheduleNextFromUserInfo:(NSDictionary*)userInfo {

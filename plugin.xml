@@ -62,6 +62,6 @@
      <!-- 源文件 -->
      <source-file src="src/ios/CtyNotification.m" />
   </platform> 
- <dependency id="cordova-plugin-android-permissions" version="1.1.5" />
+</plugin>
 </plugin>
 
