@@ -905,39 +905,6 @@
     completionHandler();
 }
 
--(void) getDeviceToken:(CDVInvokedUrlCommand*)command
-{
-    // 如果已经持有 token，直接返回
-    if (_deviceToken) {
-        NSString *hexToken = [self hexStringFromDeviceToken:_deviceToken];
-        CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:hexToken];
-        [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
-        return;
-    }
-
-    // 保存 callbackId，等待 APNs 异步返回 token
-    NSString *callbackId = command.callbackId;
-    _pendingTokenCallbackId = callbackId;
-
-    // 设置超时回退：若在 15 秒内未收到 token，则返回错误并清理回调
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        if (_pendingTokenCallbackId && [_pendingTokenCallbackId isEqualToString:callbackId]) {
-            CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                       messageAsString:@"获取 deviceToken 超时"];
-            [self.commandDelegate sendPluginResult:result callbackId:_pendingTokenCallbackId];
-            _pendingTokenCallbackId = nil;
-        }
-    });
-
-    // 请求权限后注册远程通知
-    [self requestNotificationPermission:^(BOOL granted) {
-        if (!granted) {
-            _pendingTokenCallbackId = nil;
-            CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                       messageAsString:@"通知权限被拒绝，无法获取 deviceToken"];
-            [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
-            return;
-        }
         dispatch_async(dispatch_get_main_queue(), ^{
             [[UIApplication sharedApplication] registerForRemoteNotifications];
         });

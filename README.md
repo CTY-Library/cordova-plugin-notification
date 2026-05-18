@@ -1,3 +1,36 @@
+# cordova-plugin-notification
+
+本插件为 Cordova 应用提供本地/定时通知功能。
+
+重要说明：`getDeviceToken` 已移除
+
+- 本插件已从 Android 和 iOS 中移除 `getDeviceToken` 接口。
+- 在中国大陆使用远程推送（服务器下发）请集成第三方推送服务，例如 极光（JPush）。
+
+推荐：JPush（极光推送）
+- 仓库： https://github.com/jpush/jpush-phonegap-plugin
+- 安装并使用后，可以通过 JS 获取设备标识（registration id）：
+
+```javascript
+// 初始化并获取 registration id
+window.plugins.jPushPlugin.init();
+window.plugins.jPushPlugin.getRegistrationID(function(regId){
+  console.log('JPush registration id:', regId);
+  // 将 regId 上报到你的后端，用于目标推送
+});
+```
+
+注意
+- 如果你仅需要在设备上做定时或本地提醒（闹钟、日程等），本插件仍然支持 Android 与浏览器平台的本地通知功能。
+- 若需要，我可以帮你将本插件的 JS 层扩展为：检测到 JPush 插件时自动代理 `getDeviceToken`（可选，向后兼容）。
+
+若需进一步帮助（例如集成 JPush 或自动代理实现），请告诉我你的选择，我会继续协助。
+
+## 测试脚本（示例）
+
+下面是一个用于在 `deviceready` 后在浏览器控制台或应用中运行的测试脚本 `test-notification.js`，用于验证本地/定时通知的调用参数与行为：
+
+```javascript
 /**
  * Test script to verify notification parameter passing
  * Run this in browser console after deviceready
@@ -58,9 +91,4 @@ CTYNotification.sendLocalNotification(
   }
 );
 
-// 5. Test get device token (iOS only, useful for push notifications)
-console.log("=== Test 5: Get Device Token ===");
-CTYNotification.getDeviceToken(
-  (token) => console.log("DEVICE TOKEN:", token),
-  (error) => console.log("ERROR getting token:", error)
-);
+```
