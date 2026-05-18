@@ -97,6 +97,10 @@ public class LocalNotificationScheduler {
                         Log.d("CtyNotification", "scheduleLocalNotification: adjusted triggerAt to next future occurrence=" + triggerAt);
                     }
                     Log.d("CtyNotification", "scheduleLocalNotification: numeric intervalMillis=" + intervalMillis + " nextTrigger=" + triggerAt + " total=" + total);
+                    if (alarmManager == null) {
+                        Log.e("CtyNotification", "scheduleLocalNotification: alarmManager is null, aborting");
+                        return;
+                    }
                     if (total > 0) {
                         // Schedule individual one-shot alarms for each occurrence
                         for (int i = 0; i < total; i++) {
@@ -109,14 +113,53 @@ public class LocalNotificationScheduler {
                             fi.putExtra("strDate", strDate); fi.putExtra("interval", interval);
                             fi.putExtra("repeat", false);
                             PendingIntent pi = PendingIntent.getBroadcast(context, requestCode + i, fi, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fireAt, pi);
-                            } else {
-                                alarmManager.setExact(AlarmManager.RTC_WAKEUP, fireAt, pi);
+                            try {
+                                Log.d("CtyNotification", "scheduleLocalNotification: scheduling one-shot alarm id=" + (requestCode + i) + " at=" + fireAt + " (now=" + now + ")");
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+                                    Log.w("CtyNotification", "Cannot schedule exact alarms; requesting user grant and using inexact fallback for id=" + (requestCode + i));
+                                    try {
+                                        Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                                        intent.setData(Uri.fromParts("package", context.getPackageName(), null));
+                                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                        context.startActivity(intent);
+                                    } catch (Exception e) {
+                                        Log.e("CtyNotification", "Failed to start exact alarm settings activity", e);
+                                    }
+                                    alarmManager.set(AlarmManager.RTC_WAKEUP, fireAt, pi);
+                                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fireAt, pi);
+                                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                                    alarmManager.setExact(AlarmManager.RTC_WAKEUP, fireAt, pi);
+                                } else {
+                                    alarmManager.set(AlarmManager.RTC_WAKEUP, fireAt, pi);
+                                }
+                            } catch (SecurityException se) {
+                                Log.e("CtyNotification", "scheduleLocalNotification: SecurityException scheduling alarm id=" + (requestCode + i), se);
+                            } catch (Exception ex) {
+                                Log.e("CtyNotification", "scheduleLocalNotification: Exception scheduling alarm id=" + (requestCode + i), ex);
                             }
                         }
                     } else {
-                        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, triggerAt, intervalMillis, pendingIntent);
+                        try {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+                                Log.w("CtyNotification", "Cannot schedule exact repeating alarms; requesting user grant and using inexact fallback");
+                                try {
+                                    Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                                    intent.setData(Uri.fromParts("package", context.getPackageName(), null));
+                                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                    context.startActivity(intent);
+                                } catch (Exception e) {
+                                    Log.e("CtyNotification", "Failed to start exact alarm settings activity", e);
+                                }
+                                alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent);
+                            } else {
+                                alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, triggerAt, intervalMillis, pendingIntent);
+                            }
+                        } catch (SecurityException se) {
+                            Log.e("CtyNotification", "scheduleLocalNotification: SecurityException scheduling repeating alarm", se);
+                        } catch (Exception ex) {
+                            Log.e("CtyNotification", "scheduleLocalNotification: Exception scheduling repeating alarm", ex);
+                        }
                     }
                 }
             }
