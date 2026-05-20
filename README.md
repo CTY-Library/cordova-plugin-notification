@@ -8,7 +8,7 @@
 - 在中国大陆使用远程推送（服务器下发）请集成第三方推送服务，例如 极光（JPush）。
 
 推荐：JPush（极光推送）
-- 仓库： https://github.com/jpush/jpush-phonegap-plugin
+- 仓库： https://github.com/CTY-Library/jpush-phonegap-plugin
 - 安装并使用后，可以通过 JS 获取设备标识（registration id）：
 
 ```javascript
