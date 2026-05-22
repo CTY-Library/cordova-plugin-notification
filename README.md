@@ -39,6 +39,38 @@ CTYNotification.getDeviceToken(function(token){
 说明：
 - 该方法会先请求本地通知权限（若尚未授予），然后调用 `registerForRemoteNotifications` 注册 APNs 并在成功时返回 token。
 - 模拟器不支持 APNs 设备 token，必须在真机上测试。
+-
+### iOS 推送配置清单
+
+在 iOS 上成功获取 device token 前，请按下列步骤检查并配置：
+
+1. Apple 开发者门户：
+  - 在 Apple Developer → Identifiers 为你的 App ID 启用 **Push Notifications**。
+  - 推荐使用 APNs Auth Key（.p8），或为开发/生产生成 APNs 证书（.cer）。记录 Key ID 与 Team ID。
+
+2. Xcode 设置：
+  - 在 `Signing & Capabilities` 中添加 **Push Notifications**。
+  - 若需后台/静默推送，添加 **Background Modes** 并勾选 **Remote notifications**。
+  - 确保 `Bundle Identifier` 与 Apple Developer 上的 App ID 一致，且使用包含 Push 权限的 Provisioning Profile。
+
+3. Entitlements：
+  - `.entitlements` 文件应包含 `aps-environment`，其值为 `development` 或 `production`，与 provisioning profile 环境匹配。
+
+4. 原生行为与插件：
+  - 请求通知权限后调用 `[[UIApplication sharedApplication] registerForRemoteNotifications]`。
+  - 插件需能接收或拦截 `application:didRegisterForRemoteNotificationsWithDeviceToken:` 回调并将 token 返回给 JS（本仓库的 `CTYNotification.getDeviceToken` 已实现此逻辑）。
+
+5. 真机验证：
+  - 必须在真机上测试；模拟器无法获取 APNs token。
+  - 使用 Xcode 安装带有正确 provisioning profile 的构建，并在设备控制台查看注册回调与 token。
+
+6. 后端与发送：
+  - 推荐使用 APNs Auth Key（.p8）在服务器端发送推送；或把证书上传至第三方推送服务。
+  - 区分开发/生产环境并使用对应证书或参数。
+
+7. 常见问题排查：
+  - 若权限被拒绝，提示用户到设置打开通知权限并重试。
+  - 若未获得 token，检查 Push capability、真机环境、以及 AppDelegate 回调是否被覆盖或未转发。
 
 注意
 - 如果你仅需要在设备上做定时或本地提醒（闹钟、日程等），本插件仍然支持 Android 与浏览器平台的本地通知功能。
