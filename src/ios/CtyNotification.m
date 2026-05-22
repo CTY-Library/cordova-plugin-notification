@@ -7,6 +7,7 @@
 @interface CtyNotification : CDVPlugin{
     CDVPluginResult* pluginResult;
 }
+    -(void)getDeviceToken:(CDVInvokedUrlCommand*)command;
      -(void) commonNotification:(CDVInvokedUrlCommand*)command;
      -(void) timedNotice:(CDVInvokedUrlCommand*)command;
      -(void) userNotificationCenter:(UNUserNotificationCenter *)center didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void (^)(void))completionHandler;
@@ -20,10 +21,74 @@
 
 @implementation CtyNotification
 
+static NSString *gDeviceToken = nil;
+static NSString *gPendingCallbackId = nil;
+static CtyNotification *gSharedPlugin = nil;
+static IMP gOriginalDidRegisterImp = NULL;
+static IMP gOriginalDidFailImp = NULL;
+static BOOL gSwizzled = NO;
+
+// Swizzled handlers
+static void cty_didRegister(id self, SEL _cmd, UIApplication *application, NSData *deviceToken) {
+    if (gOriginalDidRegisterImp) {
+        ((void(*)(id,SEL,UIApplication*,NSData*))gOriginalDidRegisterImp)(self, _cmd, application, deviceToken);
+    }
+    const unsigned *dataBuffer = (const unsigned *)[deviceToken bytes];
+    if (!dataBuffer) return;
+    NSMutableString *hex = [NSMutableString stringWithCapacity:(deviceToken.length * 2)];
+    for (NSUInteger i = 0; i < deviceToken.length; i++) {
+        [hex appendFormat:@"%02x", ((const unsigned char *)[deviceToken bytes])[i]];
+    }
+    gDeviceToken = [hex copy];
+    NSLog(@"CtyNotification: didRegisterForRemoteNotifications token=%@", gDeviceToken);
+
+    if (gPendingCallbackId && gSharedPlugin) {
+        CDVPluginResult *pr = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:gDeviceToken];
+        [gSharedPlugin.commandDelegate sendPluginResult:pr callbackId:gPendingCallbackId];
+        gPendingCallbackId = nil;
+    }
+}
+
+static void cty_didFail(id self, SEL _cmd, UIApplication *application, NSError *error) {
+    if (gOriginalDidFailImp) {
+        ((void(*)(id,SEL,UIApplication*,NSError*))gOriginalDidFailImp)(self, _cmd, application, error);
+    }
+    NSLog(@"CtyNotification: didFailToRegisterForRemoteNotifications error=%@", error);
+    if (gPendingCallbackId && gSharedPlugin) {
+        CDVPluginResult *pr = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[error localizedDescription]];
+        [gSharedPlugin.commandDelegate sendPluginResult:pr callbackId:gPendingCallbackId];
+        gPendingCallbackId = nil;
+    }
+}
+
+// Perform method swizzling on the app delegate to capture APNs callbacks
+- (void)swizzleAppDelegate {
+    if (gSwizzled) return;
+    id delegate = [UIApplication sharedApplication].delegate;
+    if (!delegate) return;
+    Class appDelegateClass = object_getClass(delegate);
+    SEL selRegister = @selector(application:didRegisterForRemoteNotificationsWithDeviceToken:);
+    SEL selFail = @selector(application:didFailToRegisterForRemoteNotificationsWithError:);
+
+    Method mReg = class_getInstanceMethod(appDelegateClass, selRegister);
+    if (mReg) {
+        gOriginalDidRegisterImp = method_getImplementation(mReg);
+        method_setImplementation(mReg, (IMP)cty_didRegister);
+    }
+    Method mFail = class_getInstanceMethod(appDelegateClass, selFail);
+    if (mFail) {
+        gOriginalDidFailImp = method_getImplementation(mFail);
+        method_setImplementation(mFail, (IMP)cty_didFail);
+    }
+    gSwizzled = YES;
+}
+
 - (void)pluginInitialize {
     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
     center.delegate = self;
     NSLog(@"CtyNotification: pluginInitialize start");
+    gSharedPlugin = self;
+    [self swizzleAppDelegate];
 }
 
 // JS action wrappers (match names from CtyNotificationConstants.js)
@@ -277,6 +342,42 @@
             }
             [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
         }];
+    }];
+}
+
+// Exposed JS method to get device token from APNs
+- (void)getDeviceToken:(CDVInvokedUrlCommand*)command {
+    NSLog(@"CtyNotification: getDeviceToken called");
+    // Save callback id for later delivery
+    gPendingCallbackId = command.callbackId;
+
+    if (gDeviceToken && gDeviceToken.length > 0) {
+        CDVPluginResult *pr = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:gDeviceToken];
+        [self.commandDelegate sendPluginResult:pr callbackId:gPendingCallbackId];
+        gPendingCallbackId = nil;
+        return;
+    }
+
+    // Request permission and register for remote notifications
+    [self requestNotificationPermission:^(BOOL granted) {
+        if (!granted) {
+            CDVPluginResult *pr = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"通知权限被拒绝"]; 
+            [self.commandDelegate sendPluginResult:pr callbackId:gPendingCallbackId];
+            gPendingCallbackId = nil;
+            return;
+        }
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [[UIApplication sharedApplication] registerForRemoteNotifications];
+        });
+
+        // Set a timeout to fail if no token arrives
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            if (gPendingCallbackId) {
+                CDVPluginResult *pr = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"获取 deviceToken 超时"];
+                [self.commandDelegate sendPluginResult:pr callbackId:gPendingCallbackId];
+                gPendingCallbackId = nil;
+            }
+        });
     }];
 }
 

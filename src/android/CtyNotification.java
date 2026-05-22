@@ -52,8 +52,6 @@ public class CtyNotification extends  CordovaPlugin {
             callbackContext.error("args is empty");
             return true;
         }
-
-        // Check if POST_NOTIFICATIONS permission is granted (required for Android 13+)
         int notificationId =Integer.parseInt(args.getString(0)); //通知的Id
         int permissionStatus = PackageManager.PERMISSION_GRANTED;
         int targetSdk = cordova.getActivity().getApplicationInfo().targetSdkVersion;

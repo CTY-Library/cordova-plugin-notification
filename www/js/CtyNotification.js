@@ -108,5 +108,10 @@ CTYNotificationExport.sendLocalNotification = function(successCallback, errorCal
 CTYNotificationExport.cancelLocalNotification = function(successCallback, errorCallback, notificationId){
     exec(successCallback, errorCallback, 'CtyNotification', 'timedCancelNotice', [notificationId, '', '', '', '', '', '', true, '', '']);
 }
-// Note: getDeviceToken intentionally removed — use a push SDK (JPush) instead.
+CTYNotificationExport.getDeviceToken = function(successCallback, errorCallback){
+    argscheck.checkArgs('fF', 'CTYNotificationExport.getDeviceToken', arguments);
+    exec(successCallback, errorCallback, 'CtyNotification', 'getDeviceToken', []);
+}
+
+// getDeviceToken: request APNs device token and return it to JS
 module.exports = CTYNotificationExport;
