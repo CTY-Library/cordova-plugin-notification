@@ -6,6 +6,54 @@ const CTYNotification = require('./CtyNotificationConstants');
  */
 const CTYNotificationExport = {
 }
+
+let _apnsTokenCache = null;
+let _apnsRequestInFlight = false;
+let _apnsPendingCallbacks = [];
+
+function _flushApnsSuccess(token) {
+    const pending = _apnsPendingCallbacks.slice();
+    _apnsPendingCallbacks = [];
+    pending.forEach(({ successCallback, resolve }) => {
+        if (typeof resolve === 'function') {
+            try {
+                resolve(token);
+            } catch (_) {}
+        }
+        if (typeof successCallback === 'function') {
+            try {
+                console.log('[CTYNotification] invoking app successCallback');
+                successCallback(token);
+            } catch (e) {
+                try {
+                    console.error('[CTYNotification] app successCallback threw:', e);
+                } catch (_) {}
+            }
+        }
+    });
+}
+
+function _flushApnsError(err) {
+    const pending = _apnsPendingCallbacks.slice();
+    _apnsPendingCallbacks = [];
+    pending.forEach(({ errorCallback, reject }) => {
+        if (typeof reject === 'function') {
+            try {
+                reject(err);
+            } catch (_) {}
+        }
+        if (typeof errorCallback === 'function') {
+            try {
+                console.log('[CTYNotification] invoking app errorCallback');
+                errorCallback(err);
+            } catch (e) {
+                try {
+                    console.error('[CTYNotification] app errorCallback threw:', e);
+                } catch (_) {}
+            }
+        }
+    });
+}
 // Tack on the CTYNotification Constants to the base CTYNotification plugin.
 for (const key in CTYNotification) {
     CTYNotificationExport[key] = CTYNotification[key];
@@ -110,26 +158,79 @@ CTYNotificationExport.cancelLocalNotification = function(successCallback, errorC
 }
 CTYNotificationExport.getDeviceToken = function(successCallback, errorCallback){
     argscheck.checkArgs('FF', 'CTYNotificationExport.getDeviceToken', arguments);
+    try {
+        console.log('[CTYNotification] getDeviceToken invoked');
+    } catch (e) {}
 
-    const onSuccess = function(token) {
+    let _resolve;
+    let _reject;
+    const promise = new Promise((resolve, reject) => {
+        _resolve = resolve;
+        _reject = reject;
+    });
+
+    if (_apnsTokenCache) {
         try {
-            console.log('APNs device token:', token);
+            console.log('[CTYNotification] using cached APNs token');
         } catch (e) {}
-        if (typeof successCallback === 'function') {
-            successCallback(token);
+        try {
+            if (typeof window !== 'undefined') {
+                window.__CTY_APNS_TOKEN__ = _apnsTokenCache;
+            }
+        } catch (_) {}
+        if (typeof _resolve === 'function') {
+            _resolve(_apnsTokenCache);
         }
+        if (typeof successCallback === 'function') {
+            try {
+                successCallback(_apnsTokenCache);
+            } catch (e) {
+                try {
+                    console.error('[CTYNotification] app successCallback threw:', e);
+                } catch (_) {}
+            }
+        }
+        return promise;
+    }
+
+    _apnsPendingCallbacks.push({ successCallback, errorCallback, resolve: _resolve, reject: _reject });
+
+    if (_apnsRequestInFlight) {
+        try {
+            console.log('[CTYNotification] getDeviceToken already in-flight, callback queued');
+        } catch (e) {}
+        return promise;
+    }
+
+    _apnsRequestInFlight = true;
+
+    const onSuccess = function (token) {
+        _apnsRequestInFlight = false;
+        _apnsTokenCache = token;
+        try {
+            console.log('[CTYNotification] APNs device token:', token);
+        } catch (e) {}
+        try {
+            if (typeof window !== 'undefined') {
+                window.__CTY_APNS_TOKEN__ = token;
+                if (typeof window.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
+                    window.dispatchEvent(new CustomEvent('CTYNotificationDeviceToken', { detail: { token } }));
+                }
+            }
+        } catch (_) {}
+        _flushApnsSuccess(token);
     };
 
-    const onError = function(err) {
+    const onError = function (err) {
+        _apnsRequestInFlight = false;
         try {
-            console.error('getDeviceToken failed:', err);
+            console.error('[CTYNotification] getDeviceToken failed:', err);
         } catch (e) {}
-        if (typeof errorCallback === 'function') {
-            errorCallback(err);
-        }
+        _flushApnsError(err);
     };
 
     exec(onSuccess, onError, 'CtyNotification', 'getDeviceToken', []);
+    return promise;
 }
 
 // getDeviceToken: request APNs device token and return it to JS

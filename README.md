@@ -44,6 +44,27 @@ document.addEventListener('deviceready', function () {
 - 看到 `CtyNotification: didRegisterForRemoteNotifications token=...` 后，若你也看到 `APNs device token: ...`，表示 JS 回调已成功执行。
 - `console.log` 可能显示在 Safari Web Inspector（WebView 控制台）或 Xcode 控制台（取决于运行环境与日志桥接配置）。
 
+Safari 控制台调试（推荐）：
+- `CTYNotification.getDeviceToken(...)` 现在会返回 Promise；可继续使用原回调写法，无需改接口。
+- 如果你在控制台执行表达式后看到 `undefined`，通常是控制台对表达式返回值的回显，不等同于“回调失败”。
+- 成功后插件会写入 `window.__CTY_APNS_TOKEN__`，可直接在控制台输入该变量验证。
+- 成功后插件会派发 `CTYNotificationDeviceToken` 事件，可监听该事件观察 token。
+
+```javascript
+// 方式1：Promise（不改变原接口，仅多一种调试方式）
+CTYNotification.getDeviceToken()
+  .then(token => console.log('Promise token:', token))
+  .catch(err => console.error('Promise error:', err));
+
+// 方式2：查看插件写入的全局变量
+console.log('window.__CTY_APNS_TOKEN__ =', window.__CTY_APNS_TOKEN__);
+
+// 方式3：监听插件派发事件
+window.addEventListener('CTYNotificationDeviceToken', function (e) {
+  console.log('Event token:', e.detail && e.detail.token);
+});
+```
+
 ### iOS 推送配置清单
 
 在 iOS 上成功获取 device token 前，请按下列步骤检查并配置：
