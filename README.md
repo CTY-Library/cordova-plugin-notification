@@ -27,19 +27,23 @@ window.plugins.jPushPlugin.getRegistrationID(function(regId){
 下面示例演示如何在 JS 端从插件获取 iOS 的 APNs device token（仅在 iOS 真机可用）：
 
 ```javascript
-// 请求并获取 device token（iOS 真机）
-CTYNotification.getDeviceToken(function(token){
-  console.log('APNs device token:', token);
-  // 将 token 上报到后端以便服务器向该设备发送远程通知
-}, function(err){
-  console.error('getDeviceToken failed:', err);
+// 建议在 deviceready 后调用
+document.addEventListener('deviceready', function () {
+  CTYNotification.getDeviceToken(function(token){
+    console.log('APNs device token:', token);
+    // 将 token 上报到后端以便服务器向该设备发送远程通知
+  }, function(err){
+    console.error('getDeviceToken failed:', err);
+  });
 });
 ```
 
 说明：
 - 该方法会先请求本地通知权限（若尚未授予），然后调用 `registerForRemoteNotifications` 注册 APNs 并在成功时返回 token。
 - 模拟器不支持 APNs 设备 token，必须在真机上测试。
--
+- 看到 `CtyNotification: didRegisterForRemoteNotifications token=...` 后，若你也看到 `APNs device token: ...`，表示 JS 回调已成功执行。
+- `console.log` 可能显示在 Safari Web Inspector（WebView 控制台）或 Xcode 控制台（取决于运行环境与日志桥接配置）。
+
 ### iOS 推送配置清单
 
 在 iOS 上成功获取 device token 前，请按下列步骤检查并配置：
@@ -48,9 +52,10 @@ CTYNotification.getDeviceToken(function(token){
   - 在 Apple Developer → Identifiers 为你的 App ID 启用 **Push Notifications**。
   - 推荐使用 APNs Auth Key（.p8），或为开发/生产生成 APNs 证书（.cer）。记录 Key ID 与 Team ID。
 
-2. Xcode 设置：
-  - 在 `Signing & Capabilities` 中添加 **Push Notifications**。
-  - 若需后台/静默推送，添加 **Background Modes** 并勾选 **Remote notifications**。
+2. Xcode 设置（App Target -> Signing & Capabilities）：
+  - 打开 App Target -> `Signing & Capabilities`。
+  - 添加 **Push Notifications** capability。
+  - 同时确认 **Background Modes** 中已勾选 **Remote notifications**（建议开启）。
   - 确保 `Bundle Identifier` 与 Apple Developer 上的 App ID 一致，且使用包含 Push 权限的 Provisioning Profile。
 
 3. Entitlements：
@@ -83,7 +88,7 @@ CTYNotification.getDeviceToken(function(token){
 下面是一个用于在 `deviceready` 后在浏览器控制台或应用中运行的测试脚本 `test-notification.js`，用于验证本地/定时通知的调用参数与行为：
 
 ```javascript
-/**
+/** 
  * Test script to verify notification parameter passing
  * Run this in browser console after deviceready
  */

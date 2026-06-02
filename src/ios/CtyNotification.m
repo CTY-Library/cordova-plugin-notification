@@ -22,11 +22,60 @@
 @implementation CtyNotification
 
 static NSString *gDeviceToken = nil;
-static NSString *gPendingCallbackId = nil;
+static NSMutableArray<NSString *> *gPendingCallbackIds = nil;
 static CtyNotification *gSharedPlugin = nil;
 static IMP gOriginalDidRegisterImp = NULL;
 static IMP gOriginalDidFailImp = NULL;
 static BOOL gSwizzled = NO;
+static BOOL gTokenRequestInFlight = NO;
+static const NSTimeInterval kDeviceTokenTimeoutSeconds = 60.0;
+
+static NSString *cty_escapeJSString(NSString *input) {
+    if (!input) return @"";
+    NSMutableString *escaped = [input mutableCopy];
+    [escaped replaceOccurrencesOfString:@"\\" withString:@"\\\\" options:0 range:NSMakeRange(0, escaped.length)];
+    [escaped replaceOccurrencesOfString:@"'" withString:@"\\'" options:0 range:NSMakeRange(0, escaped.length)];
+    [escaped replaceOccurrencesOfString:@"\n" withString:@"\\n" options:0 range:NSMakeRange(0, escaped.length)];
+    [escaped replaceOccurrencesOfString:@"\r" withString:@"\\r" options:0 range:NSMakeRange(0, escaped.length)];
+    return escaped;
+}
+
+static void cty_emitJsConsole(BOOL isError, NSString *message) {
+    if (!gSharedPlugin || !message || message.length == 0) return;
+    NSString *escaped = cty_escapeJSString(message);
+    NSString *level = isError ? @"error" : @"log";
+    NSString *js = [NSString stringWithFormat:@"(function(){try{console.%@('%@');}catch(e){}})();", level, escaped];
+    [gSharedPlugin.commandDelegate evalJs:js];
+}
+
+static void cty_addPendingCallback(NSString *callbackId) {
+    if (!callbackId || callbackId.length == 0) return;
+    if (!gPendingCallbackIds) {
+        gPendingCallbackIds = [NSMutableArray array];
+    }
+    if (![gPendingCallbackIds containsObject:callbackId]) {
+        [gPendingCallbackIds addObject:callbackId];
+    }
+}
+
+static BOOL cty_removePendingCallback(NSString *callbackId) {
+    if (!callbackId || !gPendingCallbackIds) return NO;
+    NSUInteger idx = [gPendingCallbackIds indexOfObject:callbackId];
+    if (idx == NSNotFound) return NO;
+    [gPendingCallbackIds removeObjectAtIndex:idx];
+    return YES;
+}
+
+static NSArray<NSString *> *cty_drainPendingCallbacks(void) {
+    if (!gPendingCallbackIds || gPendingCallbackIds.count == 0) return @[];
+    NSArray<NSString *> *all = [gPendingCallbackIds copy];
+    [gPendingCallbackIds removeAllObjects];
+    return all;
+}
+
+static NSUInteger cty_pendingCallbackCount(void) {
+    return gPendingCallbackIds ? gPendingCallbackIds.count : 0;
+}
 
 // Swizzled handlers
 static void cty_didRegister(id self, SEL _cmd, UIApplication *application, NSData *deviceToken) {
@@ -41,11 +90,17 @@ static void cty_didRegister(id self, SEL _cmd, UIApplication *application, NSDat
     }
     gDeviceToken = [hex copy];
     NSLog(@"CtyNotification: didRegisterForRemoteNotifications token=%@", gDeviceToken);
+    cty_emitJsConsole(NO, [NSString stringWithFormat:@"CtyNotification: didRegisterForRemoteNotifications token=%@", gDeviceToken]);
+    gTokenRequestInFlight = NO;
 
-    if (gPendingCallbackId && gSharedPlugin) {
-        CDVPluginResult *pr = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:gDeviceToken];
-        [gSharedPlugin.commandDelegate sendPluginResult:pr callbackId:gPendingCallbackId];
-        gPendingCallbackId = nil;
+    if (gSharedPlugin) {
+        NSArray<NSString *> *callbacks = cty_drainPendingCallbacks();
+        NSLog(@"CtyNotification: dispatching token to %lu JS callback(s)", (unsigned long)callbacks.count);
+        cty_emitJsConsole(NO, [NSString stringWithFormat:@"CtyNotification: dispatching token to %lu JS callback(s)", (unsigned long)callbacks.count]);
+        for (NSString *callbackId in callbacks) {
+            CDVPluginResult *pr = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:gDeviceToken];
+            [gSharedPlugin.commandDelegate sendPluginResult:pr callbackId:callbackId];
+        }
     }
 }
 
@@ -54,10 +109,20 @@ static void cty_didFail(id self, SEL _cmd, UIApplication *application, NSError *
         ((void(*)(id,SEL,UIApplication*,NSError*))gOriginalDidFailImp)(self, _cmd, application, error);
     }
     NSLog(@"CtyNotification: didFailToRegisterForRemoteNotifications error=%@", error);
-    if (gPendingCallbackId && gSharedPlugin) {
-        CDVPluginResult *pr = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[error localizedDescription]];
-        [gSharedPlugin.commandDelegate sendPluginResult:pr callbackId:gPendingCallbackId];
-        gPendingCallbackId = nil;
+    cty_emitJsConsole(YES, [NSString stringWithFormat:@"CtyNotification: didFailToRegisterForRemoteNotifications error=%@", error]);
+    NSString *errorMessage = [error localizedDescription] ?: @"APNs 注册失败";
+    if ([error.domain isEqualToString:NSCocoaErrorDomain] && error.code == 3000) {
+        errorMessage = @"APNs 注册失败：缺少 aps-environment 权限。请在 Xcode 开启 Push Notifications capability，并使用包含 APS Environment 的签名配置后重装应用。";
+    }
+    gTokenRequestInFlight = NO;
+    if (gSharedPlugin) {
+        NSArray<NSString *> *callbacks = cty_drainPendingCallbacks();
+        NSLog(@"CtyNotification: dispatching register error to %lu JS callback(s)", (unsigned long)callbacks.count);
+        cty_emitJsConsole(YES, [NSString stringWithFormat:@"CtyNotification: dispatching register error to %lu JS callback(s)", (unsigned long)callbacks.count]);
+        for (NSString *callbackId in callbacks) {
+            CDVPluginResult *pr = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:errorMessage];
+            [gSharedPlugin.commandDelegate sendPluginResult:pr callbackId:callbackId];
+        }
     }
 }
 
@@ -74,11 +139,15 @@ static void cty_didFail(id self, SEL _cmd, UIApplication *application, NSError *
     if (mReg) {
         gOriginalDidRegisterImp = method_getImplementation(mReg);
         method_setImplementation(mReg, (IMP)cty_didRegister);
+    } else {
+        class_addMethod(appDelegateClass, selRegister, (IMP)cty_didRegister, "v@:@@");
     }
     Method mFail = class_getInstanceMethod(appDelegateClass, selFail);
     if (mFail) {
         gOriginalDidFailImp = method_getImplementation(mFail);
         method_setImplementation(mFail, (IMP)cty_didFail);
+    } else {
+        class_addMethod(appDelegateClass, selFail, (IMP)cty_didFail, "v@:@@");
     }
     gSwizzled = YES;
 }
@@ -126,7 +195,7 @@ static void cty_didFail(id self, SEL _cmd, UIApplication *application, NSError *
                 if (granted) {
                     //权限获取成功，在主线程更新 UI
                     dispatch_async(dispatch_get_main_queue(), ^{
-                        NSLog(@"CtyNotification: registering for remote notifications (after permission)");
+                        NSLog(@"CtyNotification: permission granted");
                     });
                 }
                 completionHandler(granted);
@@ -348,13 +417,17 @@ static void cty_didFail(id self, SEL _cmd, UIApplication *application, NSError *
 // Exposed JS method to get device token from APNs
 - (void)getDeviceToken:(CDVInvokedUrlCommand*)command {
     NSLog(@"CtyNotification: getDeviceToken called");
-    // Save callback id for later delivery
-    gPendingCallbackId = command.callbackId;
+    cty_emitJsConsole(NO, @"CtyNotification: getDeviceToken called");
+    [self swizzleAppDelegate];
+    NSString *callbackId = command.callbackId;
+    cty_addPendingCallback(callbackId);
+    NSLog(@"CtyNotification: pending JS callbacks=%lu", (unsigned long)cty_pendingCallbackCount());
+    cty_emitJsConsole(NO, [NSString stringWithFormat:@"CtyNotification: pending JS callbacks=%lu", (unsigned long)cty_pendingCallbackCount()]);
 
     if (gDeviceToken && gDeviceToken.length > 0) {
         CDVPluginResult *pr = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:gDeviceToken];
-        [self.commandDelegate sendPluginResult:pr callbackId:gPendingCallbackId];
-        gPendingCallbackId = nil;
+        [self.commandDelegate sendPluginResult:pr callbackId:callbackId];
+        cty_removePendingCallback(callbackId);
         return;
     }
 
@@ -362,20 +435,34 @@ static void cty_didFail(id self, SEL _cmd, UIApplication *application, NSError *
     [self requestNotificationPermission:^(BOOL granted) {
         if (!granted) {
             CDVPluginResult *pr = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"通知权限被拒绝"]; 
-            [self.commandDelegate sendPluginResult:pr callbackId:gPendingCallbackId];
-            gPendingCallbackId = nil;
+            cty_emitJsConsole(YES, @"CtyNotification: getDeviceToken failed: 通知权限被拒绝");
+            if (cty_removePendingCallback(callbackId)) {
+                [self.commandDelegate sendPluginResult:pr callbackId:callbackId];
+            }
             return;
         }
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [[UIApplication sharedApplication] registerForRemoteNotifications];
-        });
+        if (!gTokenRequestInFlight) {
+            gTokenRequestInFlight = YES;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                NSLog(@"CtyNotification: registerForRemoteNotifications start");
+                cty_emitJsConsole(NO, @"CtyNotification: registerForRemoteNotifications start");
+                [[UIApplication sharedApplication] registerForRemoteNotifications];
+            });
+        } else {
+            NSLog(@"CtyNotification: registerForRemoteNotifications already in-flight, callback will wait");
+            cty_emitJsConsole(NO, @"CtyNotification: registerForRemoteNotifications already in-flight, callback will wait");
+        }
 
         // Set a timeout to fail if no token arrives
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(15 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            if (gPendingCallbackId) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(kDeviceTokenTimeoutSeconds * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            if (cty_removePendingCallback(callbackId)) {
+                if (cty_pendingCallbackCount() == 0) {
+                    gTokenRequestInFlight = NO;
+                }
+                NSLog(@"CtyNotification: getDeviceToken timeout callbackId=%@", callbackId);
+                cty_emitJsConsole(YES, [NSString stringWithFormat:@"CtyNotification: getDeviceToken timeout callbackId=%@", callbackId]);
                 CDVPluginResult *pr = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"获取 deviceToken 超时"];
-                [self.commandDelegate sendPluginResult:pr callbackId:gPendingCallbackId];
-                gPendingCallbackId = nil;
+                [self.commandDelegate sendPluginResult:pr callbackId:callbackId];
             }
         });
     }];

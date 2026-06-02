@@ -109,8 +109,27 @@ CTYNotificationExport.cancelLocalNotification = function(successCallback, errorC
     exec(successCallback, errorCallback, 'CtyNotification', 'timedCancelNotice', [notificationId, '', '', '', '', '', '', true, '', '']);
 }
 CTYNotificationExport.getDeviceToken = function(successCallback, errorCallback){
-    argscheck.checkArgs('fF', 'CTYNotificationExport.getDeviceToken', arguments);
-    exec(successCallback, errorCallback, 'CtyNotification', 'getDeviceToken', []);
+    argscheck.checkArgs('FF', 'CTYNotificationExport.getDeviceToken', arguments);
+
+    const onSuccess = function(token) {
+        try {
+            console.log('APNs device token:', token);
+        } catch (e) {}
+        if (typeof successCallback === 'function') {
+            successCallback(token);
+        }
+    };
+
+    const onError = function(err) {
+        try {
+            console.error('getDeviceToken failed:', err);
+        } catch (e) {}
+        if (typeof errorCallback === 'function') {
+            errorCallback(err);
+        }
+    };
+
+    exec(onSuccess, onError, 'CtyNotification', 'getDeviceToken', []);
 }
 
 // getDeviceToken: request APNs device token and return it to JS
